@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" width="220" height="220">
+<defs><path id="t" d="M20 110 a90 90 0 0 1 180 0"/><path id="b" d="M24 110 a86 86 0 0 0 172 0"/></defs>
+<circle cx="110" cy="110" r="104" fill="#ffffff" stroke="#14233a" stroke-width="3"/><circle cx="110" cy="110" r="70" fill="#1f4e8c"/>
+<text font-family="IBM Plex Sans, Arial, sans-serif" font-size="9.6" font-weight="600" fill="#14233a" letter-spacing="1"><textPath href="#t" startOffset="50%" text-anchor="middle">CALIDAD · INDUSTRIA · MATEMÁTICA · ALIMENTOS</textPath></text>
+<text font-family="IBM Plex Sans, Arial, sans-serif" font-size="12" font-weight="600" fill="#e2731b" letter-spacing="2.4" dominant-baseline="hanging"><textPath href="#b" startOffset="50%" text-anchor="middle">HÉCTOR ESPINOZA</textPath></text>
+<line x1="110" y1="74" x2="110" y2="52" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><path d="M110 52 L127 58.5 L110 65Z" fill="#e2731b"/>
+<path d="M70 142 L110 74 L150 142Z" fill="#fff"/>
+<path d="M78 142 C92 142 97 104 110 104 C123 104 128 142 142 142" fill="none" stroke="#e2731b" stroke-width="4" stroke-linecap="round"/><circle cx="110" cy="104" r="5" fill="#e2731b"/>
+<text x="110" y="166" font-family="Bricolage Grotesque, Arial Black, sans-serif" font-size="24" font-weight="800" fill="#fff" text-anchor="middle">CIMA</text>
+</svg>
