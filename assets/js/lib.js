@@ -150,3 +150,46 @@ window.CIMA={subjects:[],
   subject(sid){return this.subjects.find(x=>x.id===sid);},
   topic(sid,tid){return this.topics(sid).find(t=>t.id===tid);}
 };
+
+/* =====================================================================
+   Arrastrar y soltar accesible (también funciona tocando: elige ficha → toca caja)
+   dnd(root,{items:[{id,label}],boxes:[{id,label,hint}],onChange})
+   devuelve {get():{itemId:boxId|null}, mark(okMap), reset(), set(map)}
+   ===================================================================== */
+function dnd(root,o){
+  const st={};o.items.forEach(i=>st[i.id]=null);let sel=null;
+  root.innerHTML=`<div class="dnd"><div class="dnd-pool" data-box="" aria-label="Fichas por ubicar"></div>
+    <div class="dnd-boxes${o.cls?' '+o.cls:''}">${o.boxes.map(b=>`<div class="dnd-box" data-box="${b.id}"><div class="dnd-h">${b.label}${b.hint?`<span>${b.hint}</span>`:''}</div><div class="dnd-z" data-box="${b.id}" tabindex="0" role="button" aria-label="Colocar en ${b.label.replace(/<[^>]+>/g,'')}"></div></div>`).join('')}</div></div>`;
+  const zone=id=>id?root.querySelector(`.dnd-z[data-box="${id}"]`):root.querySelector('.dnd-pool');
+  const chip=it=>{const c=document.createElement('button');c.type='button';c.className='chipd';c.draggable=true;c.dataset.id=it.id;c.innerHTML=it.label;
+    c.addEventListener('click',e=>{e.stopPropagation();if(sel===it.id){sel=null;}else sel=it.id;paint();});
+    c.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',it.id);sel=it.id;paint();});return c;};
+  const chips={};o.items.forEach(it=>chips[it.id]=chip(it));
+  function render(){root.querySelector('.dnd-pool').innerHTML='';root.querySelectorAll('.dnd-z').forEach(z=>z.innerHTML='');
+    shuffleOnce.forEach(id=>{zone(st[id]).appendChild(chips[id]);});paint();
+    root.querySelector('.dnd-pool').classList.toggle('empty',Object.values(st).every(v=>v!==null));}
+  const shuffleOnce=shuffle(o.items.map(i=>i.id));
+  function paint(){Object.entries(chips).forEach(([id,c])=>c.classList.toggle('sel',sel===id));root.classList.toggle('picking',!!sel);}
+  function place(id,box){st[id]=box||null;sel=null;Object.values(chips).forEach(c=>c.classList.remove('ok','bad'));render();o.onChange&&o.onChange(api.get());}
+  root.querySelectorAll('[data-box]').forEach(z=>{
+    z.addEventListener('click',()=>{if(sel)place(sel,z.dataset.box);});
+    z.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&sel){e.preventDefault();place(sel,z.dataset.box);}});
+    z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('over');});
+    z.addEventListener('dragleave',()=>z.classList.remove('over'));
+    z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('over');const id=e.dataTransfer.getData('text/plain');if(id in st)place(id,z.dataset.box);});});
+  const api={get:()=>({...st}),mark(ok){Object.entries(ok).forEach(([id,v])=>{chips[id].classList.toggle('ok',v===true);chips[id].classList.toggle('bad',v===false);});},
+    reset(){Object.keys(st).forEach(k=>st[k]=null);sel=null;render();},set(m){Object.assign(st,m);render();}};
+  render();return api;
+}
+/* Descarga de texto (CSV) */
+function downloadText(name,text,mime='text/csv;charset=utf-8'){try{const b=new Blob(['﻿'+text],{type:mime}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);return true;}catch(e){return false;}}
+/* Copiar al portapapeles */
+async function copyText(t){try{await navigator.clipboard.writeText(t);return true;}catch(e){return false;}}
+/* Pestañas simples dentro de un simulador */
+function tabsUI(root,tabs,onShow){
+  root.innerHTML=`<div class="ltabs" role="tablist">${tabs.map((t,i)=>`<button type="button" role="tab" data-i="${i}" aria-selected="${i===0}"><span class="ln">${i+1}</span>${t.label}</button>`).join('')}</div>${tabs.map((t,i)=>`<div class="lpane" role="tabpanel" data-i="${i}"${i?' hidden':''}></div>`).join('')}`;
+  const panes=[...root.querySelectorAll('.lpane')],btns=[...root.querySelectorAll('.ltabs button')],done=new Set();
+  function show(i){btns.forEach((b,j)=>b.setAttribute('aria-selected',i===j));panes.forEach((p,j)=>p.hidden=i!==j);if(!done.has(i)){done.add(i);tabs[i].render(panes[i]);}onShow&&onShow(i);}
+  btns.forEach(b=>b.addEventListener('click',()=>show(+b.dataset.i)));show(0);
+  return{show,pane:i=>panes[i],rerender(){done.clear();const cur=btns.findIndex(b=>b.getAttribute('aria-selected')==='true');panes.forEach(p=>p.innerHTML='');show(cur<0?0:cur);}};
+}

@@ -582,7 +582,7 @@ const MODS=[
 const SHORT={'variables': 'Datos y variables', 'frecuencias': 'Frecuencias e histograma', 'centro': 'Tendencia central', 'dispersion': 'Dispersión', 'probabilidad': 'Probabilidad básica', 'binomial': 'Binomial', 'poisson': 'Poisson', 'normal': 'Normal', 'tlc': 'Límite central'};
 const NUM={variables:'1.1',frecuencias:'1.2',centro:'1.3',dispersion:'1.4',probabilidad:'2.1',binomial:'2.2',poisson:'2.3',normal:'2.4',tlc:'2.5'};
 MODS.forEach(m=>{m.n=NUM[m.id];m.short=SHORT[m.id];});
-const META={id:'estadistica',nombre:'Estadística',orden:2,nivel:'Estadística · 2.º semestre',descripcion:'Describe datos de procesos y calcula probabilidades con modelos de distribución.'};
+const META={id:'estadistica',nombre:'Estadística',orden:2,nivel:'Estadística · 2.º semestre',descripcion:'Describe datos, calcula probabilidades y decide con pruebas de hipótesis, regresión y ANOVA, usando Excel y JASP.'};
 CIMA.addUnit(META,{id:'u1',orden:1,nombre:'Unidad 1 · Estadística descriptiva',topics:MODS.slice(0,4)});
 CIMA.addUnit(META,{id:'u2',orden:2,nombre:'Unidad 2 · Probabilidad y distribuciones',topics:MODS.slice(4)});
 })();

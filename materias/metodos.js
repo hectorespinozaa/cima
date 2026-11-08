@@ -2,7 +2,7 @@
    CIMA · Materia: FUNDAMENTOS DE MÉTODOS NUMÉRICOS (IA-102)
    Unidad 1: Fundamentos del álgebra · Unidad 2: Gráficas, ecuaciones y desigualdades
    ===================================================================== */
-const META_MN={id:'metodos',nombre:'Fundamentos de Métodos Numéricos',orden:1,nivel:'Métodos Numéricos · 1.er nivel',descripcion:'Álgebra, gráficas, ecuaciones y desigualdades: la base de todo cálculo en ingeniería.'};
+const META_MN={id:'metodos',nombre:'Fundamentos de Métodos Numéricos',orden:1,nivel:'Métodos Numéricos · 1.er nivel',descripcion:'Álgebra, gráficas, ecuaciones, funciones, sistemas y matrices: la base de todo cálculo en ingeniería.'};
 (function(){
 "use strict";
 /* ===================== UNIDAD 1: FUNDAMENTOS DEL ÁLGEBRA ===================== */

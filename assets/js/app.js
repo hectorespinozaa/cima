@@ -18,7 +18,13 @@ const SEAL=(s=170)=>`<svg width="${s}" height="${s}" viewBox="0 0 220 220" aria-
 const WORDMARK=`<svg viewBox="0 0 330 190" class="wordmark" role="img" aria-label="CIMA · Héctor Espinoza"><text x="12" y="132" font-family="Bricolage Grotesque,Arial Black,sans-serif" font-size="88" font-weight="800" fill="currentColor" letter-spacing="1">CIM</text><g transform="translate(186,50)"><line x1="44" y1="2" x2="44" y2="-28" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/><path d="M44 -28 L66 -20 L44 -12 Z" fill="var(--accent)"/><path d="M0 82 L44 0 L88 82 Z" fill="var(--data)"/><path d="M10 82 C26 82 30 34 44 34 C58 34 62 82 78 82" fill="none" stroke="var(--surface)" stroke-width="4" stroke-linecap="round"/><circle cx="44" cy="34" r="6" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/></g><path d="M16 152 L284 152" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/><text x="16" y="172" font-family="IBM Plex Sans,Arial,sans-serif" font-size="15" fill="currentColor" font-weight="600" letter-spacing="1">Héctor Espinoza</text><text x="16" y="187" font-family="IBM Plex Sans,Arial,sans-serif" font-size="9.6" fill="var(--accent)" font-weight="600" letter-spacing="0.8">CALIDAD · INDUSTRIA · MATEMÁTICA · ALIMENTOS</text></svg>`;
 
 /* ---------------- Progreso y gamificación ---------------- */
-const LEVELS=[{n:'Campamento base',alt:'',xp:0},{n:'Pasochoa',alt:'4200 m',xp:150},{n:'Rucu Pichincha',alt:'4698 m',xp:400},{n:'Cayambe',alt:'5790 m',xp:800},{n:'Cotopaxi',alt:'5897 m',xp:1400},{n:'Chimborazo',alt:'6263 m',xp:2200}];
+const LEVELS=[
+ {n:'Campamento base',alt:'',xp:0,d:'El punto de partida de toda expedición: aquí se preparan los escaladores antes de subir.'},
+ {n:'Pasochoa',alt:'4200 m',xp:150,d:'Volcán apagado al sur de Quito, rodeado de bosque andino protegido. La primera montaña de muchos andinistas.'},
+ {n:'Rucu Pichincha',alt:'4698 m',xp:400,d:'La cumbre que se ve desde Quito. "Rucu" significa "viejo" en kichwa; su hermano, el Guagua ("niño") Pichincha, sigue activo.'},
+ {n:'Cayambe',alt:'5790 m',xp:800,d:'El único lugar del planeta donde la línea ecuatorial pasa por nieve y glaciares.'},
+ {n:'Cotopaxi',alt:'5897 m',xp:1400,d:'Uno de los volcanes activos más altos del mundo, famoso por su cono casi perfecto.'},
+ {n:'Chimborazo',alt:'6263 m',xp:2200,d:'La montaña más alta de Ecuador y el punto de la Tierra más alejado de su centro: por el abultamiento del planeta en el ecuador, su cumbre está más lejos del centro que la del Everest.'}];
 function bestMap(attempts){const m={};attempts.forEach(a=>{const k=a.subject_id+'/'+a.topic_id;m[k]=Math.max(m[k]??0,+a.score);});return m;}
 function countMap(attempts){const m={};attempts.forEach(a=>{const k=a.subject_id+'/'+a.topic_id;m[k]=(m[k]||0)+1;});return m;}
 function xpOf(attempts){const b=bestMap(attempts),c=countMap(attempts);let xp=0;Object.keys(b).forEach(k=>{xp+=b[k]*10+5*Math.min(c[k],20);});return Math.round(xp);}
@@ -115,6 +121,7 @@ function runQuiz(mod,box){
     if(st.done<qs.length){t.textContent=`Respondidas ${st.done} de ${qs.length} · correctas ${st.ok}`;return;}
     const nota=round(st.ok/qs.length*10,1),k=mod.subject+'/'+mod.id,prevBest=bestMap(S.attempts)[k];
     const before=earned(S.attempts,S.sessions,S.certs);
+    const lvBefore=levelOf(xpOf(S.attempts)).i;
     const row={subject_id:mod.subject,unit_id:mod.unit,topic_id:mod.id,mode:'practica',score:nota,correct:st.ok,total:qs.length,duration_s:Math.round((Date.now()-t0)/1000),
       details:qs.map((q,i)=>({i,ok:!!st.res[i],q:q.text.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,110)}))};
     S.attempts.push({...row,user_id:S.user.id,created_at:new Date().toISOString()});
@@ -123,6 +130,7 @@ function runQuiz(mod,box){
     t.innerHTML=`<strong>Nota: ${fmt(nota,1)} / 10.</strong> ${prevBest!==undefined&&nota>prevBest?'Nueva mejor nota. ':''}${nota>=APROB?(prevBest===undefined||prevBest<APROB?'<b>¡Tema aprobado!</b> ':''):`Necesitas ${APROB} para aprobar. `}Mejor nota: ${fmt(best,1)}${saved?'':' · <span class="warn">No se pudo guardar ahora; se reintentará automáticamente.</span>'}`;
     score.classList.add('is-final');
     if(nota>=APROB&&(prevBest??0)<APROB)toast(`<b>¡Tema aprobado!</b> ${esc(mod.short)}`,'ok');
+    const lvAfter=levelOf(xpOf(S.attempts)).i;if(lvAfter>lvBefore){const l=LEVELS[lvAfter];toast(`<span><b>¡Llegaste al ${esc(l.n)}${l.alt?` (${l.alt})`:''}!</b> ${esc(l.d)}</span>`,'level');}
     const after=earned(S.attempts,S.sessions,S.certs);BADGES.filter(b=>after.has(b.id)&&!before.has(b.id)).forEach(b=>toast(`${badgeSvg(b.ic,true)}<span><b>Nueva insignia:</b> ${b.n}</span>`,'badge'));
     renderTop();
   }
@@ -272,6 +280,7 @@ function viewTopic(main,sid,tid){
   const all=CIMA.topics(sid),i=all.indexOf(m),prev=all[i-1],next=all[i+1],unit=s.units.find(u=>u.id===m.unit);
   const v=el(`<article class="view">
     <header class="head"><p class="eyebrow"><a href="#/materia/${sid}">${esc(s.nombre)}</a> / ${esc(unit?unit.nombre:'')}</p><h1><span class="tnum">${esc(m.n)}</span> ${esc(m.title)}</h1><p class="lead">${m.lead}</p></header>
+    <div class="topic-tools no-print"><button type="button" class="btn btn-ghost btn-sm" id="proj">Modo proyector</button>${S.profile?.rol==='docente'?'<button type="button" class="btn btn-ghost btn-sm" id="ws">Hoja de ejercicios para imprimir</button>':''}</div>
     <section class="idea" aria-labelledby="idea-h"><h2 id="idea-h">Idea clave</h2>${m.idea}</section>
     <section class="panel" aria-labelledby="sim-h"><div class="sec-head"><h2 id="sim-h">Simulador</h2><p>${m.simHint}</p></div><div class="sim-body"></div></section>
     <section class="panel" aria-labelledby="quiz-h"><div class="sec-head"><h2 id="quiz-h">Pruébate</h2><p>Cada intento trae ejercicios nuevos. Apruebas con ${APROB} o más y se guarda tu mejor nota.</p></div><div class="quiz-body"></div></section>
@@ -280,7 +289,25 @@ function viewTopic(main,sid,tid){
   main.append(v);
   REDRAW=m.sim(v.querySelector('.sim-body'))||null;
   runQuiz(m,v.querySelector('.quiz-body'));
+  v.querySelector('#proj').addEventListener('click',()=>projector(true));
+  const wb=v.querySelector('#ws');if(wb)wb.addEventListener('click',()=>worksheet(s,m));
 }
+/* Modo proyector: letra grande, sin barra superior */
+function projector(on){document.body.classList.toggle('proj',on);let x=document.getElementById('proj-x');
+  if(on&&!x){x=el('<button type="button" class="btn proj-x no-print" id="proj-x">Salir del modo proyector</button>');x.onclick=()=>projector(false);document.body.append(x);}
+  if(!on&&x)x.remove();if(REDRAW)setTimeout(()=>{try{REDRAW();}catch(e){}},60);}
+window.addEventListener('hashchange',()=>{if(document.body.classList.contains('proj'))projector(false);});
+/* Hoja de ejercicios imprimible con solucionario (solo docente) */
+function worksheet(s,m){const old=document.getElementById('ws-ov');if(old)old.remove();
+  const ov=el(`<div class="ws-ov" id="ws-ov"><div class="ws-bar no-print"><b>Hoja de ejercicios · ${esc(m.n)} ${esc(m.short)}</b><label>Ejercicios <select id="ws-n"><option>6</option><option selected>12</option><option>18</option></select></label><label><input type="checkbox" id="ws-k" checked> Incluir solucionario</label><button type="button" class="btn btn-ghost btn-sm" id="ws-r">Otros ejercicios</button><button type="button" class="btn btn-sm" id="ws-p">Imprimir</button><button type="button" class="btn btn-ghost btn-sm" id="ws-c">Cerrar</button></div><div class="ws-doc" id="ws-doc"></div></div>`);
+  document.body.append(ov);document.body.classList.add('ws-open');
+  const build=()=>{const n=+ov.querySelector('#ws-n').value,qs=[];let g=0;while(qs.length<n&&g++<20)qs.push(...m.quiz());qs.length=Math.min(qs.length,n);
+    const L='abcdefgh',head=`<div class="ws-head"><div><b>${esc(CFG.institucion||'')} · Carrera de ${esc(CFG.carrera||'')}</b><br>${esc(s.nombre)} · ${esc(m.n)} ${esc(m.title)}</div><div>Nombre: ______________________________<br>Fecha: ____________ Paralelo: ______</div></div>`;
+    const body=qs.map((q,i)=>`<li class="ws-q"><div>${q.text}</div>${q.type==='mc'?`<ol class="ws-opts" type="a">${q.options.map(o=>`<li>${o}</li>`).join('')}</ol>`:`<div class="ws-line">Respuesta: ____________________ ${q.unit||''}</div>`}</li>`).join('');
+    const key=qs.map((q,i)=>`<li><b>${q.type==='mc'?L[q.answer]+')':nf(q.answer,4)+(q.unit?' '+q.unit:'')}</b> ${q.explain?`<span>${q.explain}</span>`:''}</li>`).join('');
+    ov.querySelector('#ws-doc').innerHTML=`<section class="ws-page">${head}<ol class="ws-list">${body}</ol><p class="ws-foot">CIMA · ${esc(CFG.docenteNombre||'')}</p></section>${ov.querySelector('#ws-k').checked?`<section class="ws-page ws-key"><h2>Solucionario · ${esc(m.n)} ${esc(m.short)}</h2><ol>${key}</ol></section>`:''}`;};
+  ['ws-n','ws-k'].forEach(id=>ov.querySelector('#'+id).addEventListener('change',build));ov.querySelector('#ws-r').onclick=build;
+  ov.querySelector('#ws-p').onclick=()=>{try{window.print();}catch(e){}};ov.querySelector('#ws-c').onclick=()=>{ov.remove();document.body.classList.remove('ws-open');};build();}
 function heatmap(days){
   const W=7,weeks=16,end=new Date();end.setHours(12,0,0,0);const start=new Date(end-((weeks*7-1)-(6-((end.getDay()+6)%7)))*864e5);
   let cells='';for(let w=0;w<weeks;w++){cells+='<div class="hw">';for(let d=0;d<W;d++){const t=new Date(+start+(w*7+d)*864e5);if(t>end){cells+='<span class="hd empty"></span>';continue;}const k=dayKey(t);cells+=`<span class="hd${days.has(k)?' on':''}" title="${t.toLocaleDateString('es-EC')}${days.has(k)?' · practicaste':''}"></span>`;}cells+='</div>';}
@@ -289,7 +316,7 @@ function heatmap(days){
 function viewLogros(main){
   const xp=xpOf(S.attempts),L=levelOf(xp),eb=earned(S.attempts,S.sessions,S.certs),days=activeDays(S.attempts,S.sessions),sk=streaks(days);
   main.append(el(`<div class="view"><header class="head"><p class="eyebrow">Logros</p><h1>Tu montaña</h1><p class="lead">Ganas XP por la mejor nota de cada tema (hasta 100 XP por tema) y por cada intento (5 XP, hasta 20 intentos por tema).</p></header>
-   <section class="panel"><div class="sec-head"><h2>Nivel: ${esc(L.lv.n)}</h2><p>${xp} XP${L.next?` · siguiente: ${esc(L.next.n)} (${L.next.xp} XP)`:''}</p></div>${peaksSvg(L.i)}</section>
+   <section class="panel"><div class="sec-head"><h2>Nivel: ${esc(L.lv.n)}</h2><p>${xp} XP${L.next?` · siguiente: ${esc(L.next.n)} (${L.next.xp} XP)`:''}</p></div>${peaksSvg(L.i)}<div class="lv-cards">${LEVELS.map((l,i)=>`<div class="lv-c${i===L.i?' cur':i<L.i?' done':''}"><span class="lv-k">${i<L.i?'Alcanzada':i===L.i?'Estás aquí':`${l.xp} XP`}</span><b>${esc(l.n)}</b>${l.alt?`<span class="lv-alt">${l.alt}</span>`:''}<p>${esc(l.d)}</p></div>`).join('')}</div></section>
    <section class="panel"><div class="sec-head"><h2>Insignias</h2><p>${eb.size} de ${BADGES.length} ganadas</p></div><div class="badges">${BADGES.map(b=>`<div class="bdg${eb.has(b.id)?' on':''}">${badgeSvg(b.ic,eb.has(b.id))}<b>${b.n}</b><span>${b.d}</span></div>`).join('')}</div></section>
    <section class="panel"><div class="sec-head"><h2>Constancia</h2><p>Racha actual: <b>${sk.cur}</b> día${sk.cur===1?'':'s'} · mejor racha: <b>${sk.best}</b> · días con práctica: <b>${days.size}</b></p></div>${heatmap(days)}</section>${footer()}</div>`));
 }

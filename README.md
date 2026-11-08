@@ -12,8 +12,10 @@ Desarrollada por **Ing. Héctor Espinoza**.
 | `assets/js/app.js` | Portal, ingreso, seguimiento de tiempo, pruebas, niveles, insignias y certificados |
 | `assets/js/docente.js` | Dashboard docente |
 | `assets/js/data.js` | Conexión con la base de datos (y modo demostración) |
-| `assets/js/lib.js` | Utilidades de cálculo y gráficos compartidas |
-| `materias/*.js` | Un archivo por materia con sus simuladores y preguntas |
+| `assets/js/lib.js` | Utilidades de cálculo, gráficos, arrastrar y soltar, pestañas |
+| `assets/js/stats.js` | Motor estadístico (F, t, Tukey, Shapiro-Wilk, Levene, chi-cuadrado, regresión) |
+| `assets/js/labui.js` | Piezas de los laboratorios: pasos, hoja de Excel, salidas JASP/Excel, redacción |
+| `materias/*.js` | Simuladores y preguntas: `metodos*.js`, `estadistica*.js`, `diseno*.js` (con `diseno-lab.js`, laboratorio estilo SPSS) y `calidad-u1.js` / `calidad-u2.js` |
 | `assets/css/cima.css` | Estilos |
 | `assets/img/` | Logo, ícono y sello |
 | `supabase/schema.sql` | Base de datos: se ejecuta una sola vez en Supabase |
