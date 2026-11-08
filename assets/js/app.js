@@ -139,6 +139,7 @@ function runQuiz(mod,box){
 
 /* ---------------- Rutas ---------------- */
 let REDRAW=null;
+const PRAC=new Set(['practica','materia','tema','logros','certificados','certificado']);
 const PUBLIC=new Set(['','inicio','ingresar','registro','verificar','certificado','acerca']);
 function parse(){const h=(location.hash||'#/').replace(/^#\/?/,'');const p=h.split('/').map(decodeURIComponent);return{name:p[0]||'',args:p.slice(1)};}
 const go=h=>{if(location.hash===h)route();else location.hash=h;};
@@ -148,7 +149,8 @@ async function route(){
   if(!S.user&&!PUBLIC.has(name)){go('#/ingresar');return;}
   if(S.user&&(name==='ingresar'||name==='registro')){go('#/');return;}
   main.innerHTML='';renderTop(name);
-  const v={'':S.user?(S.profile?.rol==='docente'?viewDocente:viewHome):viewLanding,inicio:viewLanding,ingresar:m=>viewAuth(m,'in'),registro:m=>viewAuth(m,'up'),materia:viewSubject,tema:viewTopic,logros:viewLogros,certificados:viewCerts,certificado:viewCert,verificar:viewVerify,acerca:viewAcerca,docente:viewDocente,perfil:viewPerfil}[name]||viewNotFound;
+  if(S.user&&S.profile?.rol==='docente'&&PRAC.has(name))main.append(el(`<div class="prac-bar no-print"><span><b>Modo práctica</b> · ves CIMA como un estudiante. Tus resultados no aparecen en el dashboard.</span><span class="prac-links"><a href="#/practica">Inicio de práctica</a><a href="#/logros">Logros</a><a href="#/certificados">Certificados</a><a class="btn btn-sm" href="#/">← Volver al Dashboard</a></span></div>`));
+  const v={'':S.user?(S.profile?.rol==='docente'?viewDocente:viewHome):viewLanding,inicio:viewLanding,ingresar:m=>viewAuth(m,'in'),registro:m=>viewAuth(m,'up'),materia:viewSubject,tema:viewTopic,practica:viewHome,logros:viewLogros,certificados:viewCerts,certificado:viewCert,verificar:viewVerify,acerca:viewAcerca,docente:viewDocente,perfil:viewPerfil}[name]||viewNotFound;
   const sid=name==='materia'||name==='tema'?args[0]:null;
   setContext(sid);
   try{await v(main,...args);}catch(e){console.error(e);main.innerHTML=`<div class="view"><div class="panel"><h2>Algo salió mal</h2><p>${esc(errMsg(e))}</p><p><a href="#/">Volver al inicio</a></p></div></div>`;}
@@ -166,8 +168,8 @@ function renderTop(active){
   const doc=S.profile?.rol==='docente';
   $('#top').innerHTML=`<div class="wrap top-in">
     <a class="brand" href="#/" aria-label="CIMA, inicio">${ICON(34)}<span class="brand-t"><b>CIMA</b><small>v${esc(CFG.version)}</small></span></a>
-    <nav class="toplinks" aria-label="Principal">${S.user?(doc?link('#/','Dashboard','')+link('#/acerca','Acerca','acerca'):link('#/','Inicio','')+link('#/logros','Logros','logros')+link('#/certificados','Certificados','certificados')):link('#/','Inicio','')+link('#/verificar','Verificar certificado','verificar')+link('#/acerca','Acerca','acerca')}</nav>
-    <div class="topuser">${S.user?`${doc?'':`<a class="lvl-pill" href="#/logros" title="Tu nivel">${esc(L.lv.n)} · ${xp} XP</a>`}<a class="who" href="#/perfil" title="Mi perfil">${esc((S.profile?.nombre||'').split(' ')[0]||'Perfil')}</a><button type="button" class="btn btn-ghost btn-sm" id="logout">Salir</button>`:`<a class="btn btn-ghost btn-sm" href="#/ingresar">Ingresar</a><a class="btn btn-sm" href="#/registro">Crear cuenta</a>`}</div></div>
+    <nav class="toplinks" aria-label="Principal">${S.user?(doc?link('#/','Dashboard','')+`<a href="#/practica"${PRAC.has(active)?' aria-current="page"':''}>Practicar</a>`+link('#/acerca','Acerca','acerca'):link('#/','Inicio','')+link('#/logros','Logros','logros')+link('#/certificados','Certificados','certificados')):link('#/','Inicio','')+link('#/verificar','Verificar certificado','verificar')+link('#/acerca','Acerca','acerca')}</nav>
+    <div class="topuser">${S.user?`${doc&&!PRAC.has(active)?'':`<a class="lvl-pill" href="#/logros" title="Tu nivel">${esc(L.lv.n)} · ${xp} XP</a>`}<a class="who" href="#/perfil" title="Mi perfil">${esc((S.profile?.nombre||'').split(' ')[0]||'Perfil')}</a><button type="button" class="btn btn-ghost btn-sm" id="logout">Salir</button>`:`<a class="btn btn-ghost btn-sm" href="#/ingresar">Ingresar</a><a class="btn btn-sm" href="#/registro">Crear cuenta</a>`}</div></div>
     ${DEMO?'<div class="demo-bar">Modo demostración: los datos se guardan solo en este navegador. Conecta Supabase en config.js para usar la plataforma real.</div>':''}`;
   const lo=$('#logout');if(lo)lo.onclick=async()=>{await flush();await API.signOut();S.user=null;S.profile=null;S.attempts=[];S.sessions=[];S.certs=[];T.subject=undefined;T.sid=null;go('#/');};
 }

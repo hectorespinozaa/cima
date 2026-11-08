@@ -10,7 +10,7 @@ window.CIMA_CONFIG = {
   supabaseUrl: 'https://kxowpfkmimtwusbpsvov.supabase.co',
   supabaseKey: 'sb_publishable_-GOaNVGfDbtri33OVe4xLg_jf0jUsuU',
 
-  version: '1.1',
+  version: '1.1.1',
   docenteNombre: 'Ing. Héctor Espinoza',
   carrera: 'Alimentos',
   institucion: 'ULEAM',
@@ -19,6 +19,9 @@ window.CIMA_CONFIG = {
   proximamente: [],
 
   novedades: [
+    { v: '1.1.1', fecha: 'noviembre de 2026', items: [
+      'Modo práctica para el docente: botón Practicar para ver y usar CIMA como estudiante sin salir de la cuenta.'
+    ]},
     { v: '1.1', fecha: 'noviembre de 2026', items: [
       'Nueva materia: Diseño Experimental (7 temas) con DCA, DBCA y factoriales 2² y 2³, salida estilo SPSS y datos descargables.',
       'Nueva materia: Gestión de la Calidad (8 temas) con Ishikawa, Pareto y dispersión interactivos, gráficos de control, capacidad, muestreo y HACCP.',

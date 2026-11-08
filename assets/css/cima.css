@@ -689,3 +689,6 @@ body.proj .wrap{max-width:1400px}body.proj .formula,body.proj .expr{font-size:1.
 @media print{body.ws-open>*:not(.ws-ov){display:none!important}body.ws-open .ws-ov{position:static;background:#fff;overflow:visible}body.ws-open .ws-doc{padding:0}
   .ws-page{box-shadow:none;width:100%;padding:0;border-radius:0}.ws-key{break-before:page}}
 .steps-list,.steps-list li{min-width:0;max-width:100%}.steps-list .s-expr{max-width:100%}
+/* ===== v1.1.1 · Modo práctica del docente ===== */
+.prac-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:10px 14px;margin:14px 0 4px;font-size:14px}
+.prac-links{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
