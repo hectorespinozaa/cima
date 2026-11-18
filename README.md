@@ -19,6 +19,8 @@ Desarrollada por **Ing. Héctor Espinoza**.
 | `assets/css/cima.css` | Estilos |
 | `assets/img/` | Logo, ícono y sello |
 | `supabase/schema.sql` | Base de datos: se ejecuta una sola vez en Supabase |
+| `supabase/v1.1.2.sql` | Actualización de la base de datos para la v1.1.2 (buzón, capturas, certificado con detalle, restablecer contraseñas). Se ejecuta después de `schema.sql` |
+| `manifest.webmanifest` y `sw.js` | Lo que permite instalar CIMA como app (PWA) |
 
 ## Agregar o cambiar contenido
 
@@ -27,5 +29,13 @@ y se agrega una línea `<script src="materias/nueva.js"></script>` en `index.htm
 Los identificadores de los temas (`id`) no deben cambiar una vez publicados, porque las notas de los
 estudiantes quedan asociadas a ellos.
 
+Un tema marcado con `refuerzo: true` aparece para practicar, pero no cuenta para el certificado.
+Así se puede sumar contenido a mitad de semestre sin cambiarles la meta a los estudiantes.
+
 Después de agregar temas, entra una vez al dashboard docente: así la base de datos actualiza el
 catálogo que se usa para emitir certificados.
+
+## Cuando cambias la versión
+
+Además de `version` en `config.js`, cambia el nombre de la caché en `sw.js` (por ejemplo `cima-v1.1.3`).
+Así los celulares que tienen CIMA instalada descargan los archivos nuevos.
