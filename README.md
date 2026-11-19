@@ -15,7 +15,7 @@ Desarrollada por **Ing. Héctor Espinoza**.
 | `assets/js/lib.js` | Utilidades de cálculo, gráficos, arrastrar y soltar, pestañas |
 | `assets/js/stats.js` | Motor estadístico (F, t, Tukey, Shapiro-Wilk, Levene, chi-cuadrado, regresión) |
 | `assets/js/labui.js` | Piezas de los laboratorios: pasos, hoja de Excel, salidas JASP/Excel, redacción |
-| `materias/*.js` | Simuladores y preguntas: `metodos*.js`, `estadistica*.js`, `diseno*.js` (con `diseno-lab.js`, laboratorio estilo SPSS) y `calidad-u1.js` / `calidad-u2.js` |
+| `materias/*.js` | Simuladores y preguntas: `metodos*.js`, `estadistica*.js`, `diseno*.js` (con `diseno-lab.js` y `diseno-lab2.js`, laboratorios estilo SPSS) y `calidad-u1.js` / `calidad-u2.js` |
 | `assets/css/cima.css` | Estilos |
 | `assets/img/` | Logo, ícono y sello |
 | `supabase/schema.sql` | Base de datos: se ejecuta una sola vez en Supabase |

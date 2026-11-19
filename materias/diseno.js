@@ -1,11 +1,14 @@
 /* =====================================================================
    CIMA · DISEÑO EXPERIMENTAL
-   U1 Fundamentos: 1.1 Principios · 1.2 ¿Qué diseño uso? · 1.3 SPSS sin enredos
-   U2 Diseños y análisis: 2.1 DCA · 2.2 DBCA · 2.3 Factorial 2² · 2.4 Factorial 2³
+   Organizado como el sílabo (v1.2):
+   U1 Fundamentos y DCA: 1.1 Principios · 1.2 ¿Qué diseño uso? · 1.3 SPSS · 1.4 DCA · 1.5 DCA desbalanceado
+   U2 Bloques completos: 2.1 DBCA · 2.2 Cuadro latino · 2.3 Grecolatino
+   U3 Bloques incompletos: 3.1 DBIB
+   U4 Factoriales: 4.1 Factorial 2² · 4.2 Factorial a × b · 4.3 Factorial 2³
    ===================================================================== */
 (function(){
 "use strict";
-const META={id:'diseno',nombre:'Diseño Experimental',orden:3,nivel:'Diseño Experimental · 5.º semestre',descripcion:'Planifica experimentos, organiza los datos y analiza e interpreta DCA, DBCA y factoriales como en SPSS.'};
+const META={id:'diseno',nombre:'Diseño Experimental',orden:3,nivel:'Diseño Experimental · 5.º semestre',descripcion:'Planifica experimentos, organiza los datos y analiza e interpreta DCA, bloques, cuadro latino, grecolatino, DBIB y factoriales como en SPSS.'};
 const L=DLAB,sp=L.sp,spP=L.spP;
 
 /* =============== 1.1 Principios =============== */
@@ -55,28 +58,32 @@ function quizPrincipios(){const qs=[],V=pick(VOC);
 
 /* =============== 1.2 ¿Qué diseño uso? =============== */
 const TREE={q1:{t:'¿Cuántos factores quieres estudiar?',o:[['Uno','q2'],['Dos o más','q3']]},
- q2:{t:'¿Hay una fuente de variación conocida que no te interesa estudiar pero puedes agrupar (lotes de materia prima, días, operarios, equipos)?',o:[['Sí','dbca'],['No, las unidades son homogéneas','dca']]},
- q3:{t:'¿Cada factor tiene solo dos niveles (bajo y alto)?',o:[['Sí','q4'],['No, alguno tiene 3 o más','fg']]},
+ q2:{t:'¿Cuántas fuentes de variación conocidas (lotes, días, operarios, equipos) necesitas controlar sin estudiarlas?',o:[['Ninguna: las unidades son homogéneas','q5'],['Una','q6'],['Dos (filas y columnas)','dcl'],['Tres','dcgl']]},
+ q5:{t:'¿Todos los tratamientos tienen el mismo número de réplicas?',o:[['Sí','dca'],['No (se perdieron unidades o no alcanzó el material)','dcau']]},
+ q6:{t:'¿Cada bloque alcanza para probar todos los tratamientos?',o:[['Sí','dbca'],['No, solo para algunos','dbib']]},
+ q3:{t:'¿Cada factor tiene solo dos niveles (bajo y alto)?',o:[['Sí','q4'],['No, alguno tiene 3 o más','fab']]},
  q4:{t:'¿Cuántos factores son?',o:[['Dos','f2'],['Tres','f3']]}};
-const RES={dca:['Diseño completamente al azar (DCA)','dca','2.1'],dbca:['Diseño en bloques completos al azar (DBCA)','dbca','2.2'],f2:['Factorial 2²','factorial-22','2.3'],f3:['Factorial 2³','factorial-23','2.4'],fg:['Factorial general a × b','','']};
-const OTHER=[['fg','Se estudia la temperatura de almacenamiento (4, 8 y 12 °C) y el tipo de envase (vidrio, PET y bolsa) sobre la vida útil de un jugo.'],['fg','Se prueban 3 variedades de yuca y 2 métodos de cocción sobre la textura del casabe, con 4 repeticiones.']];
+const RES={dca:['Diseño completamente al azar (DCA)','dca','1.4'],dcau:['DCA desbalanceado','dca-desbalanceado','1.5'],dbca:['Diseño en bloques completos al azar (DBCA)','dbca','2.1'],dcl:['Diseño en cuadro latino (DCL)','cuadro-latino','2.2'],dcgl:['Diseño en cuadro grecolatino (DCGL)','grecolatino','2.3'],dbib:['Bloques incompletos balanceados (DBIB)','dbib','3.1'],f2:['Factorial 2²','factorial-22','4.1'],fab:['Factorial general a × b','factorial-ab','4.2'],f3:['Factorial 2³','factorial-23','4.3']};
+const OTHER=[];
 function simQueDiseno(box){
   box.innerHTML=`<div class="part"><h3 class="sub">A. Árbol de decisión</h3><p class="ctx">Responde las preguntas sobre tu experimento.</p><div class="tree" id="tr"></div></div>
-   <div class="part"><h3 class="sub">B. Clasifica los casos</h3><p class="ctx" id="cl-ctx"></p><div class="bins b5">${['dca','dbca','f2','f3','fg'].map(k=>`<button type="button" class="bin" data-k="${k}"><b style="font-size:14px">${k==='fg'?'Factorial general':L.DN[k]}</b></button>`).join('')}</div>
+   <div class="part"><h3 class="sub">B. Clasifica los casos</h3><p class="ctx" id="cl-ctx"></p><div class="bins">${['dca','dbca','dcl','dcgl','dbib','f2','fab','f3'].map(k=>`<button type="button" class="bin" data-k="${k}"><b style="font-size:14px">${L.DN[k]}</b></button>`).join('')}</div>
    <p class="fb" id="cl-fb"></p><div class="btn-row"><button type="button" class="btn" id="cl-new">Otro caso</button></div><p class="note" id="cl-sc"></p></div>`;
   let path=['q1'];
   function tree(){const out=[];path.forEach((n,i)=>{if(TREE[n]){const nd=TREE[n],ch=path[i+1];out.push(`<div class="tnode"><p><b>${nd.t}</b></p><div class="seg">${nd.o.map(o=>`<button type="button" data-n="${n}" data-to="${o[1]}" aria-pressed="${ch===o[1]}">${o[0]}</button>`).join('')}</div></div>`);}
-      else{const r=RES[n];out.push(`<div class="tres"><span>Usa un</span><b>${r[0]}</b>${r[1]?`<a class="btn sm" href="#/tema/diseno/${r[1]}">Ir al tema ${r[2]} →</a>`:'<span class="note">Se analiza igual que un factorial 2², pero con Tukey en los factores de 3 o más niveles.</span>'}<button type="button" class="btn btn-ghost sm" id="tr-r">Empezar de nuevo</button></div>`);}});
+      else{const r=RES[n];out.push(`<div class="tres"><span>Usa un</span><b>${r[0]}</b><a class="btn sm" href="#/tema/diseno/${r[1]}">Ir al tema ${r[2]} →</a><button type="button" class="btn btn-ghost sm" id="tr-r">Empezar de nuevo</button></div>`);}});
     $('#tr',box).innerHTML=out.join('');
     box.querySelectorAll('#tr [data-to]').forEach(b=>b.addEventListener('click',()=>{const i=path.indexOf(b.dataset.n);path=path.slice(0,i+1);path.push(b.dataset.to);tree();}));
     const r=$('#tr-r',box);if(r)r.addEventListener('click',()=>{path=['q1'];tree();});}
-  let C,sc=0,n=0;const bins=[...box.querySelectorAll('.bin')],all=[...L.MINI,...OTHER];
+  let C,sc=0,n=0;const bins=[...box.querySelectorAll('.bin')],all=[...L.MINI,...DLAB2.MINI2];
   function nc(){C=pick(all);$('#cl-ctx',box).textContent=C[1];bins.forEach(b=>{b.disabled=false;b.classList.remove('is-ok','is-bad');});$('#cl-fb',box).textContent='';}
   bins.forEach(b=>b.addEventListener('click',()=>{const ok=b.dataset.k===C[0];n++;if(ok)sc++;b.classList.add(ok?'is-ok':'is-bad');if(!ok)bins.find(x=>x.dataset.k===C[0]).classList.add('is-ok');bins.forEach(x=>x.disabled=true);
-    $('#cl-fb',box).innerHTML=(ok?'<strong>Bien.</strong> ':'<strong>No.</strong> ')+`Es <b>${RES[C[0]][0]}</b>. ${C[0]==='fg'?'Hay dos factores y al menos uno tiene más de dos niveles.':L.WHEN[C[0]].use}`;$('#cl-sc',box).textContent=`Aciertos: ${sc} de ${n}`;}));
+    $('#cl-fb',box).innerHTML=(ok?'<strong>Bien.</strong> ':'<strong>No.</strong> ')+`Es <b>${RES[C[0]][0]}</b>. ${L.WHEN[C[0]].use}`;$('#cl-sc',box).textContent=`Aciertos: ${sc} de ${n}`;}));
   $('#cl-new',box).addEventListener('click',nc);tree();nc();return null;}
-function quizQueDiseno(){const qs=[];const cs=shuffle([...L.MINI]).slice(0,4);const lab=['DCA','DBCA','Factorial 2²','Factorial 2³'],key=['dca','dbca','f2','f3'];
-  cs.forEach(c=>qs.push({type:'mc',keepOrder:true,text:c[1]+'<br>¿Qué diseño corresponde?',options:lab,answer:key.indexOf(c[0]),explain:`Es <b>${L.DLONG[c[0]]}</b>.`}));
+function quizQueDiseno(){const qs=[];const cs=shuffle([...L.MINI,...DLAB2.MINI2]).slice(0,4),ALL=['dca','dbca','dcl','dcgl','dbib','f2','fab','f3'];
+  cs.forEach(c=>{const keys=[c[0],...shuffle(ALL.filter(x=>x!==c[0])).slice(0,3)].sort((a,b)=>ALL.indexOf(a)-ALL.indexOf(b));
+    qs.push({type:'mc',keepOrder:true,text:c[1]+'<br>¿Qué diseño corresponde?',options:keys.map(k=>L.DN[k]),answer:keys.indexOf(c[0]),explain:`Es <b>${L.DLONG[c[0]]}</b>.`});});
+  qs.push({type:'mc',text:'Cada lote de materia prima solo alcanza para 3 de los 5 tratamientos que quieres comparar. ¿Qué diseño usas?',options:['Bloques incompletos balanceados (DBIB)','DBCA con lotes como bloques','Cuadro latino','DCA ignorando los lotes'],answer:0,explain:'Si el bloque no alcanza para todos los tratamientos, el bloque es incompleto: DBIB.'});
   qs.push({type:'mc',text:'En un DBCA, el bloque es…',options:['Una fuente de variación que se controla pero no se estudia','El factor principal del estudio','Una réplica extra','El tratamiento control'],answer:0,explain:'El bloque se incluye para restar su variación del error, no para elegir “el mejor bloque”.'});
   qs.push({type:'mc',text:'¿Qué ventaja tiene un factorial frente a estudiar un factor a la vez?',options:['Permite detectar interacciones y usa menos corridas para la misma información','Siempre da resultados significativos','No necesita réplicas','No necesita aleatorización'],answer:0,explain:'Variar un factor a la vez no puede detectar interacciones y gasta más corridas.'});
   return qs;}
@@ -138,8 +145,29 @@ const IDEA_LAB={
   <p>Hay <b>interacción</b> cuando el efecto de un factor cambia según el nivel del otro: en el gráfico de perfil, las líneas no son paralelas. Si AB es significativa, interpreta A y B <b>juntos</b>.</p>`,
  f3:`<div class="formula">Corridas: 2³ × r = 8r · Efectos: A, B, C, AB, AC, BC, ABC (1 gl cada uno)<br>gl<sub>Error</sub> = 8(r − 1)</div>
   <p>Con tres factores, primero mira las interacciones (de mayor a menor orden), luego los efectos principales que no participan en interacciones significativas.</p>`};
-const lab=d=>box=>L.lab(box,d);
-CIMA.addUnit(META,{id:'u1',orden:1,nombre:'Unidad 1 · Fundamentos del diseño de experimentos',topics:[
+const lab=d=>box=>L.lab(box,d),lab2=d=>box=>DLAB2.lab(box,d);
+Object.assign(IDEA_LAB,{
+ dcau:`<div class="formula">SC<sub>Trat</sub> = Σ(Y<sub>i.</sub>² / n<sub>i</sub>) − FC · SC<sub>E</sub> = SC<sub>T</sub> − SC<sub>Trat</sub> · gl: t − 1 · N − t (N = Σn<sub>i</sub>)<br>Tukey-Kramer: DHS<sub>ij</sub> = q<sub>(α; t; N−t)</sub> · √( CM<sub>E</sub>/2 · (1/n<sub>i</sub> + 1/n<sub>j</sub>) )</div>
+  <p>Cada par de tratamientos tiene su propia DHS. En SPSS, ANOVA de un factor da las comparaciones por pares con Tukey-Kramer, pero arma los subconjuntos homogéneos con la <b>media armónica</b> de los n, y lo advierte al pie: para decidir sobre un par, usa Comparaciones múltiples. Si el desbalance es grande, revisa con más cuidado la homogeneidad de varianzas.</p>`,
+ dcl:`<div class="formula">y<sub>ijk</sub> = μ + τ<sub>i</sub> + β<sub>j</sub> (fila) + γ<sub>k</sub> (columna) + ε<sub>ijk</sub> · N = p²<br>SC<sub>Trat</sub> = ΣY<sub>i</sub>²/p − FC · SC<sub>Filas</sub> = ΣY<sub>j</sub>²/p − FC · SC<sub>Col</sub> = ΣY<sub>k</sub>²/p − FC<br>gl: p − 1 para cada uno · Error: (p − 1)(p − 2) · DHS = q·√(CM<sub>E</sub>/p)</div>
+  <p>Cada tratamiento aparece <b>una vez en cada fila y una vez en cada columna</b>. Se aleatoriza eligiendo un cuadro al azar: se permutan filas, columnas y la asignación de letras. El modelo supone que no hay interacciones.</p>`,
+ dcgl:`<div class="formula">y = μ + τ (letra latina) + β (fila) + γ (columna) + δ (letra griega) + ε · N = p²<br>SC de cada factor = ΣY²/p − FC · gl: p − 1 cada uno · Error: (p − 1)(p − 3)</div>
+  <p>Son dos cuadros latinos <b>ortogonales</b> superpuestos: cada combinación letra latina–letra griega aparece una sola vez. Existe para p = 3, 4, 5, 7, 8…, pero <b>no para p = 6</b>. Con p = 4 quedan solo 3 gl para el error.</p>`,
+ dbib:`<div class="formula">t tratamientos · b bloques de tamaño k &lt; t · cada tratamiento r veces · N = t·r = b·k · λ = r(k − 1)/(t − 1)<br>Q<sub>i</sub> = y<sub>i.</sub> − (1/k)·Σ (totales de los bloques donde aparece i)<br>SC<sub>Trat (aj)</sub> = k·ΣQ<sub>i</sub>² / (λ·t) · SC<sub>Bloques</sub> = Σy<sub>.j</sub>²/k − FC · SC<sub>E</sub> = SC<sub>T</sub> − SC<sub>Trat (aj)</sub> − SC<sub>Bloques</sub><br>SC<sub>Bloques (aj)</sub> = SC<sub>Trat (aj)</sub> + SC<sub>Bloques</sub> − SC<sub>Trat</sub> · gl<sub>E</sub> = N − t − b + 1<br>Media ajustada = ȳ.. + k·Q<sub>i</sub>/(λ·t) · DHS = q·√(k·CM<sub>E</sub>/(λ·t))</div>
+  <p>En SPSS: Univariado con efectos principales y <b>Tipo III</b> (tratamiento y bloque salen ajustados) y <b>Medias marginales estimadas</b> para las medias ajustadas y su gráfica. No uses Post hoc: compara medias simples.</p>`,
+ fab:`<div class="formula">Corridas: a·b·r · SC<sub>A</sub> = ΣY<sub>i..</sub>²/(b·r) − FC · SC<sub>B</sub> = ΣY<sub>.j.</sub>²/(a·r) − FC<br>SC<sub>A×B</sub> = ΣY<sub>ij.</sub>²/r − FC − SC<sub>A</sub> − SC<sub>B</sub> · SC<sub>E</sub> = SC<sub>T</sub> − ΣY<sub>ij.</sub>²/r + FC<br>gl: a − 1 · b − 1 · (a − 1)(b − 1) · ab(r − 1)</div>
+  <p>Primero mira la <b>interacción</b>. Si es significativa, compara combinaciones con el gráfico de perfil. Si no, interpreta cada factor y usa Tukey en los que tienen 3 o más niveles (SPSS no hace post hoc con 2 niveles).</p>`});
+function quizDcau(){const C=L.GEN.dcau(),A=L.analyze(C),F0=C.fac[0],qs=[];
+  qs.push({type:'num',text:`${C.ctx}<br>¿Cuántos grados de libertad tiene el <b>error</b>?`,answer:A.err.df,tol:0,explain:`gl<sub>Error</sub> = N − t = ${A.N} − ${A.k} = <b>${A.err.df}</b>, con N = ${A.ns.join(' + ')}.`});
+  const i=A.ns.indexOf(Math.min(...A.ns)),tot=+A.trSum[i].toFixed(C.resp.dec);
+  qs.push({type:'num',text:`El tratamiento ${F0.lv[i]} tiene ${A.ns[i]} réplicas y su total es ${nf(tot,C.resp.dec)}. ¿Cuánto aporta a Σ(Y<sub>i.</sub>²/n<sub>i</sub>)? (dos decimales)`,answer:round(tot*tot/A.ns[i],2),tol:0.01,explain:`${nf(tot,C.resp.dec)}² / ${A.ns[i]} = <b>${fmt(tot*tot/A.ns[i],2)}</b>. Cada total se divide entre su propio n<sub>i</sub>.`});
+  const q=round(ST.qtukey(0.95,A.k,A.err.df),3),cme=+A.err.ms.toPrecision(4),ni=A.ns[0],nj=A.ns[1],dhs=q*Math.sqrt(cme/2*(1/ni+1/nj));
+  qs.push({type:'num',text:`Tukey-Kramer: q = ${nf(q,3)}, CM<sub>E</sub> = ${nf(cme,8)}, n<sub>1</sub> = ${ni} y n<sub>2</sub> = ${nj}. Calcula la DHS de ese par (tres decimales).`,answer:round(dhs,3),tol:0.002,explain:`DHS = ${nf(q,3)} · √(${nf(cme,8)}/2 · (1/${ni} + 1/${nj})) = <b>${fmt(dhs,3)}</b>.`});
+  qs.push({type:'mc',text:'¿Por qué en un DCA desbalanceado cada par de tratamientos tiene su propia DHS?',options:['Porque el error de la diferencia depende de cuántas réplicas tiene cada tratamiento','Porque el CM<sub>E</sub> cambia en cada par','Porque q depende del par comparado','No es así: la DHS es una sola'],answer:0,explain:'La varianza de ȳ<sub>i</sub> − ȳ<sub>j</sub> es CM<sub>E</sub>(1/n<sub>i</sub> + 1/n<sub>j</sub>): cambia con los n.'});
+  qs.push({type:'mc',text:'En la tabla de subconjuntos de SPSS aparece la nota “los tamaños de grupo no son iguales; se utiliza la media armónica”. ¿Qué haces?',options:['Decido sobre cada par con la tabla de Comparaciones múltiples (Tukey-Kramer)','Descarto el análisis','Elimino datos hasta igualar las réplicas','Uso solo la tabla de subconjuntos'],answer:0,explain:'Los subconjuntos con media armónica son una aproximación; las comparaciones por pares usan los n reales.'});
+  const pv=pick([0.002,0.021,0.044,0.083,0.27]);qs.push({type:'mc',keepOrder:true,text:`La Sig. del ANOVA es <b>${spP(pv)}</b>. Con α = 0,05…`,options:['Se rechaza H₀','No se rechaza H₀'],answer:pv<0.05?0:1,explain:`${spP(pv)} es ${pv<0.05?'menor':'mayor'} que 0,05.`});
+  return qs;}
+CIMA.addUnit(META,{id:'u1',orden:1,nombre:'Unidad 1 · Fundamentos del diseño y DCA',topics:[
  {id:'principios',n:'1.1',short:'Principios',title:'Conceptos y principios del diseño',desc:'Factor, tratamiento, unidad experimental, réplica, aleatorización y bloque.',
   lead:'Un experimento bien diseñado responde la pregunta correcta con el menor costo. Todo empieza por nombrar bien sus partes y respetar tres principios.',
   idea:`<div class="types"><div class="type"><b>Aleatorización</b><span>Asignar tratamientos y orden al azar, para que lo que no controlas no favorezca a nadie.</span></div><div class="type"><b>Réplica</b><span>Repetir cada tratamiento en unidades distintas, para estimar el error.</span></div><div class="type"><b>Bloqueo</b><span>Agrupar unidades parecidas para quitar una fuente de variación conocida.</span></div><div class="type"><b>Unidad experimental</b><span>Lo que recibe un tratamiento: un molde, un frasco, una bandeja.</span></div></div>`,
@@ -155,10 +183,17 @@ CIMA.addUnit(META,{id:'u1',orden:1,nombre:'Unidad 1 · Fundamentos del diseño d
    <div class="type"><b>Excel</b><span>Archivo → Opciones → Avanzadas → desmarca <b>Usar separadores del sistema</b> y escribe el separador decimal (File → Options → Advanced → Use system separators).</span></div>
    <div class="type"><b>JASP</b><span>Usa el CSV con <b>punto decimal</b> y revisa que la variable aparezca como continua (regla); si sale como texto, cámbiala o reimporta.</span></div></div>
    <ul><li><b>Formato largo</b>: una fila por observación y una columna por variable.</li><li>Tratamientos y bloques con códigos numéricos, etiquetas en <b>Valores</b> y Medida <b>Nominal</b>; la respuesta con Medida <b>Escala</b>.</li><li>SPSS en español escribe <b>,045</b> por 0,045 y <b>,000</b> cuando p &lt; 0,0005.</li></ul>`,
-  simHint:'Prueba qué pasa con el punto y la coma, y apila datos al formato largo.',sim:simSpss,quiz:quizSpss}]});
-CIMA.addUnit(META,{id:'u2',orden:2,nombre:'Unidad 2 · Diseños y su análisis',topics:[
- {id:'dca',n:'2.1',short:'DCA',title:'Diseño completamente al azar (DCA) y Tukey',desc:'ANOVA de un factor, supuestos y comparaciones múltiples.',lead:'El DCA compara varios tratamientos cuando las unidades son homogéneas. Es la base de todos los demás diseños.',idea:IDEA_LAB.dca,simHint:'Seis pestañas: de cuándo usarlo a cómo redactar la conclusión, con un caso de planta.',sim:lab('dca'),quiz:quizLab('dca')},
- {id:'dbca',n:'2.2',short:'DBCA',title:'Diseño en bloques completos al azar (DBCA)',desc:'Controlar lotes, días u operarios con bloques.',lead:'Cuando la materia prima, el día o el operario cambian, el DBCA separa ese ruido del efecto que realmente te interesa.',idea:IDEA_LAB.dbca,simHint:'Organiza tratamientos y bloques, analiza y lee la salida de Univariado.',sim:lab('dbca'),quiz:quizLab('dbca')},
- {id:'factorial-22',n:'2.3',short:'Factorial 2²',title:'Diseño factorial 2²',desc:'Dos factores en dos niveles: efectos e interacción.',lead:'Un factorial estudia varios factores a la vez y descubre si interactúan, algo que nunca verías cambiando un factor a la vez.',idea:IDEA_LAB.f2,simHint:'Analiza efectos principales e interacción con el gráfico de perfil.',sim:lab('f2'),quiz:quizLab('f2')},
- {id:'factorial-23',n:'2.4',short:'Factorial 2³',title:'Diseño factorial 2³',desc:'Tres factores en dos niveles: ocho combinaciones.',lead:'Con tres factores y ocho combinaciones puedes identificar qué variables de proceso importan de verdad.',idea:IDEA_LAB.f3,simHint:'Interpreta siete efectos y encuentra la mejor combinación.',sim:lab('f3'),quiz:quizLab('f3')}]});
+  simHint:'Prueba qué pasa con el punto y la coma, y apila datos al formato largo.',sim:simSpss,quiz:quizSpss},
+ {id:'dca',n:'1.4',short:'DCA',title:'Diseño completamente al azar (DCA) y Tukey',desc:'ANOVA de un factor, supuestos y comparaciones múltiples.',lead:'El DCA compara varios tratamientos cuando las unidades son homogéneas. Es la base de todos los demás diseños.',idea:IDEA_LAB.dca,simHint:'Seis pestañas: de cuándo usarlo a cómo redactar la conclusión, con un caso de planta.',sim:lab('dca'),quiz:quizLab('dca')},
+ {id:'dca-desbalanceado',n:'1.5',short:'DCA desbalanceado',title:'DCA desbalanceado y Tukey-Kramer',desc:'Tratamientos con distinto número de réplicas.',lead:'En la planta se rompen frascos y se contaminan muestras. Cuando los tratamientos quedan con distinto número de réplicas, las fórmulas y la prueba de Tukey cambian.',idea:IDEA_LAB.dcau,simHint:'Analiza un DCA con réplicas desiguales y compara pares con Tukey-Kramer.',sim:lab('dcau'),quiz:quizDcau}]});
+CIMA.addUnit(META,{id:'u2',orden:2,nombre:'Unidad 2 · Diseños de bloques completos',topics:[
+ {id:'dbca',n:'2.1',short:'DBCA',title:'Diseño en bloques completos al azar (DBCA)',desc:'Controlar lotes, días u operarios con bloques.',lead:'Cuando la materia prima, el día o el operario cambian, el DBCA separa ese ruido del efecto que realmente te interesa.',idea:IDEA_LAB.dbca,simHint:'Organiza tratamientos y bloques, analiza y lee la salida de Univariado.',sim:lab('dbca'),quiz:quizLab('dbca')},
+ {id:'cuadro-latino',n:'2.2',short:'Cuadro latino',title:'Diseño en cuadro latino (DCL)',desc:'Un factor y dos fuentes de ruido: filas y columnas.',lead:'Si tienes dos fuentes de ruido a la vez (lotes y operarios, días y equipos), el cuadro latino controla ambas con pocas corridas.',idea:IDEA_LAB.dcl,simHint:'Lee el cuadro del cuaderno, arma la base para SPSS y analiza tratamiento, filas y columnas.',sim:lab2('dcl'),quiz:DLAB2.quiz('dcl')},
+ {id:'grecolatino',n:'2.3',short:'Grecolatino',title:'Diseño en cuadro grecolatino (DCGL)',desc:'Un factor y tres fuentes de ruido con dos cuadros latinos superpuestos.',lead:'El grecolatino agrega una tercera fuente de ruido al cuadro latino, sin aumentar el número de corridas.',idea:IDEA_LAB.dcgl,simHint:'Identifica las letras latinas y griegas, analiza los cuatro factores y decide con Tukey.',sim:lab2('dcgl'),quiz:DLAB2.quiz('dcgl')}]});
+CIMA.addUnit(META,{id:'u3',orden:3,nombre:'Unidad 3 · Diseños de bloques incompletos',topics:[
+ {id:'dbib',n:'3.1',short:'DBIB',title:'Bloques incompletos balanceados (DBIB)',desc:'Tratamientos y bloques ajustados, y sus gráficas de medias.',lead:'Cuando un bloque no alcanza para todos los tratamientos (un panelista que solo prueba tres muestras, un lote pequeño), se usa un diseño incompleto y se comparan medias ajustadas.',idea:IDEA_LAB.dbib,simHint:'Calcula Q, λ y las sumas ajustadas, compara medias ajustadas y revisa si valió la pena bloquear.',sim:lab2('dbib'),quiz:DLAB2.quiz('dbib')}]});
+CIMA.addUnit(META,{id:'u4',orden:4,nombre:'Unidad 4 · Diseños factoriales',topics:[
+ {id:'factorial-22',n:'4.1',short:'Factorial 2²',title:'Diseño factorial 2²',desc:'Dos factores en dos niveles: efectos e interacción.',lead:'Un factorial estudia varios factores a la vez y descubre si interactúan, algo que nunca verías cambiando un factor a la vez.',idea:IDEA_LAB.f2,simHint:'Analiza efectos principales e interacción con el gráfico de perfil.',sim:lab('f2'),quiz:quizLab('f2')},
+ {id:'factorial-ab',n:'4.2',short:'Factorial a × b',title:'Diseño factorial general a × b',desc:'Dos factores con 3 o más niveles: interacción y Tukey.',lead:'Cuando un factor tiene tres o más niveles (temperaturas, variedades, concentraciones), el factorial general muestra si los factores interactúan y cuál es la mejor combinación.',idea:IDEA_LAB.fab,simHint:'Lee el gráfico de perfil, decide por la interacción y usa Tukey solo cuando corresponde.',sim:lab2('fab'),quiz:DLAB2.quiz('fab')},
+ {id:'factorial-23',n:'4.3',short:'Factorial 2³',title:'Diseño factorial 2³',desc:'Tres factores en dos niveles: ocho combinaciones.',lead:'Con tres factores y ocho combinaciones puedes identificar qué variables de proceso importan de verdad.',idea:IDEA_LAB.f3,simHint:'Interpreta siete efectos y encuentra la mejor combinación.',sim:lab('f3'),quiz:quizLab('f3')}]});
 })();
