@@ -147,6 +147,7 @@ window.CIMA={subjects:[],
     s.units.push(unit);s.units.sort((a,b)=>(a.orden||0)-(b.orden||0));
   },
   topics(sid){const s=this.subjects.find(x=>x.id===sid);return s?s.units.flatMap(u=>u.topics):[];},
+  reqTopics(sid){return this.topics(sid).filter(t=>!t.refuerzo);},   // los de refuerzo no cuentan para el certificado
   subject(sid){return this.subjects.find(x=>x.id===sid);},
   topic(sid,tid){return this.topics(sid).find(t=>t.id===tid);}
 };
@@ -193,3 +194,18 @@ function tabsUI(root,tabs,onShow){
   btns.forEach(b=>b.addEventListener('click',()=>show(+b.dataset.i)));show(0);
   return{show,pane:i=>panes[i],rerender(){done.clear();const cur=btns.findIndex(b=>b.getAttribute('aria-selected')==='true');panes.forEach(p=>p.innerHTML='');show(cur<0?0:cur);}};
 }
+
+/* Comprobación de respuestas numéricas (v1.1.2)
+   - acepta la tolerancia de la pregunta o un 1 % relativo (redondeos intermedios)
+   - si la respuesta va en %, "45%" se lee como 45 y no como 0,45 */
+function readAnswer(raw,q){const s=String(raw).trim();if(/%\s*$/.test(s)&&q&&/%/.test(q.unit||''))return parseNum(s.replace(/%\s*$/,''));return parseNum(s);}
+function answerOk(v,q){
+  /* Regla de redondeo (v1.1.2): se acepta una diferencia de hasta una unidad en el segundo decimal (0,01).
+     tol:0 = respuesta exacta (conteos, enteros). Si la pregunta define un margen menor (probabilidades
+     con 3 o 4 decimales) y la respuesta es menor que 1, se respeta ese margen. */
+  const d=Math.abs(v-q.answer),e=1e-9;
+  if(q.tol===0)return d<=e;
+  if(q.tol==null)return d<=0.01+e;
+  return d<=Math.max(q.tol,Math.abs(q.answer)>=1?0.01:0)+e;}
+
+function verTxt(v){v=String(v||'').trim().replace(/^v(?=\d)/,'');return v?(/^\d/.test(v)?'v'+v:v):'';}

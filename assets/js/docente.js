@@ -2,10 +2,10 @@
 /* =====================================================================
    CIMA · Dashboard docente
    Pestañas: Resumen · Ranking · Estudiante · Materias · Tiempo vs logro ·
-   Alertas · Preguntas difíciles · Exportar
+   Alertas · Preguntas difíciles · Certificados · Buzón · Exportar
    ===================================================================== */
 const D={raw:null,f:{subject:'*',paralelo:'*',days:30},tab:'resumen',sort:{k:'visits',dir:-1},student:null};
-const TABS=[['resumen','Resumen'],['ranking','Ranking'],['estudiante','Estudiante'],['materias','Materias'],['tiempo','Tiempo vs logro'],['alertas','Alertas'],['preguntas','Preguntas difíciles'],['exportar','Exportar']];
+const TABS=[['resumen','Resumen'],['ranking','Ranking'],['estudiante','Estudiante'],['materias','Materias'],['tiempo','Tiempo vs logro'],['alertas','Alertas'],['preguntas','Preguntas difíciles'],['certificados','Certificados'],['buzon','Buzón'],['exportar','Exportar']];
 const SUBCLS=['s0','s1','s2','s3','s4'];
 const subjIdx=sid=>Math.max(0,CIMA.subjects.findIndex(s=>s.id===sid));
 const weekStart=t=>{const d=new Date(t);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return+d;};
@@ -17,7 +17,8 @@ async function viewDocente(main){
   try{
     const rows=CIMA.subjects.map(s=>catalogRow(s.id));await API.syncCatalog(rows).catch(()=>{});
     const [profiles,sessions,attempts,certificates]=await Promise.all(['profiles','sessions','attempts','certificates'].map(t=>API.all(t)));
-    D.raw={profiles,sessions,attempts,certificates};
+    let sug=null;try{sug=await API.allSuggestions();}catch(_){sug=null;}
+    D.raw={profiles,sessions,attempts,certificates,sug};
   }catch(e){$('#d-sub').textContent=errMsg(e);return;}
   renderDash();
 }
@@ -54,11 +55,12 @@ function filtersHtml(){
 function renderDash(){
   const B=$('#d-body');if(!B)return;const X=buildData();
   $('#d-sub').textContent=`${X.studs.length} estudiantes registrados${D.f.paralelo!=='*'?' en el paralelo '+D.f.paralelo:''}. Los temas aprobados son acumulados; ingresos, tiempo y pruebas corresponden al período elegido.`;
-  B.innerHTML=`${filtersHtml()}<div class="tabs" role="tablist">${TABS.map(([k,t])=>`<button type="button" role="tab" aria-selected="${D.tab===k}" data-tab="${k}">${t}</button>`).join('')}</div><div id="d-tab"></div>`;
+  const nNew=(D.raw.sug||[]).filter(r=>r.estado==='nueva').length;
+  B.innerHTML=`${filtersHtml()}<div class="tabs" role="tablist">${TABS.map(([k,t])=>`<button type="button" role="tab" aria-selected="${D.tab===k}" data-tab="${k}">${t}${k==='buzon'&&nNew?` <span class="tab-n">${nNew}</span>`:''}</button>`).join('')}</div><div id="d-tab"></div>`;
   B.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{D.tab=b.dataset.tab;renderDash();});
   [['f-s','subject'],['f-p','paralelo'],['f-d','days']].forEach(([id,k])=>$('#'+id).onchange=e=>{D.f[k]=k==='days'?+e.target.value:e.target.value;renderDash();});
   const T=$('#d-tab');REDRAW=()=>renderDash();
-  ({resumen:tabResumen,ranking:tabRanking,estudiante:tabEstudiante,materias:tabMaterias,tiempo:tabTiempo,alertas:tabAlertas,preguntas:tabPreguntas,exportar:tabExportar}[D.tab])(T,X);
+  ({resumen:tabResumen,ranking:tabRanking,estudiante:tabEstudiante,materias:tabMaterias,tiempo:tabTiempo,alertas:tabAlertas,preguntas:tabPreguntas,certificados:tabCertificados,buzon:tabBuzon,exportar:tabExportar}[D.tab])(T,X);
 }
 const kpi=(t,v,s='',hl)=>`<div class="ro${hl?' hl':''}"><span>${t}</span><b>${v}</b>${s?`<span>${s}</span>`:''}</div>`;
 const legend=items=>`<div class="legend">${items.map(([c,t])=>`<span><i class="lg ${c}"></i>${esc(t)}</span>`).join('')}</div>`;
@@ -100,12 +102,17 @@ function tabEstudiante(T,X){
   const subSecs=CIMA.subjects.map(s=>[s.nombre,x.ses.filter(r=>r.subject_id===s.id).reduce((a,r)=>a+(r.active_seconds||0),0)]);
   T.innerHTML=`<section class="panel"><label class="ctrl" style="max-width:420px"><span>Estudiante</span><select id="st-sel">${rows.map(r=>`<option value="${r.id}"${r.id===x.id?' selected':''}>${esc(r.nombre)} · ${esc(r.paralelo)}</option>`).join('')}</select></label>
    <p class="note">${esc(x.email)} · último ingreso: ${x.last?new Date(x.last).toLocaleString('es-EC'):'nunca'}</p>
+   <details class="manual"><summary>Restablecer la contraseña de este estudiante</summary><p class="note">Escribe una contraseña nueva (mínimo 8 caracteres), pulsa <b>Restablecer</b> y entrégasela al estudiante. Luego él puede seguir usándola.</p>
+   <div class="ans-row"><input class="inp mono" id="pw-new" autocomplete="off" maxlength="40" aria-label="Contraseña nueva"><button type="button" class="btn btn-ghost" id="pw-gen">Generar una</button><button type="button" class="btn" id="pw-go">Restablecer</button></div><p class="fb" id="pw-fb"></p></details>
    <div class="readouts">${kpi('Ingresos (período)',x.visits)}${kpi('Práctica (período)',fmtDur(x.secs))}${kpi('Temas aprobados',`${x.approved}/${X.universe.length}`,'',true)}${kpi('Nota media (mejores)',x.avgBest==null?'—':fmt(x.avgBest,1))}${kpi('Racha actual / mejor',`${x.streak} / ${x.streakBest}`)}${kpi('Nivel',levelOf(x.xp).lv.n,x.xp+' XP')}</div></section>
    <section class="panel"><div class="sec-head"><h2>Evolución de notas</h2><p>Cada punto es una prueba, en orden. La línea es el promedio de las últimas 5. Aprobación: ${APROB}.</p></div><div class="chart-wrap" id="st-ch"></div></section>
    <div class="dash-grid"><section class="panel"><div class="sec-head"><h2>Por tema</h2></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Tema</th><th>Intentos</th><th>Mejor</th><th>Estado</th></tr></thead><tbody>
    ${CIMA.subjects.flatMap(s=>CIMA.topics(s.id).filter(t=>c[s.id+'/'+t.id]).map(t=>{const k=s.id+'/'+t.id;return`<tr><td>${esc(s.nombre.split(' ')[0])} ${esc(t.n)} ${esc(t.short)}</td><td>${c[k]}</td><td>${fmt(b[k],1)}</td><td class="${b[k]>=APROB?'ok':'bad'}">${b[k]>=APROB?'aprobado':'en progreso'}</td></tr>`;})).join('')||'<tr><td colspan="4">Sin pruebas todavía.</td></tr>'}</tbody></table></div></section>
    <section class="panel"><div class="sec-head"><h2>Tiempo por materia (total)</h2></div><div class="hbars">${hbars(subSecs.map(([n,s])=>({label:n,value:s/3600,txt:fmtDur(s)})))}</div><div class="sec-head"><h2>Días con práctica</h2></div>${heatmap(activeDays(x.att,x.ses))}</section></div>`;
   $('#st-sel').onchange=e=>{D.student=e.target.value;renderDash();};
+  $('#pw-gen').onclick=()=>{const w=['Mango','Cacao','Queso','Yogur','Atun','Pan','Limon','Guayaba','Quinua','Coco'];$('#pw-new').value=w[Math.floor(Math.random()*w.length)]+(1000+Math.floor(Math.random()*9000))+'cima';};
+  $('#pw-go').onclick=async()=>{const pw=$('#pw-new').value.trim(),fb=$('#pw-fb');if(pw.length<8){fb.textContent='La contraseña debe tener al menos 8 caracteres.';return;}
+    $('#pw-go').disabled=true;try{await API.resetPassword(x.id,pw);fb.innerHTML=`<strong>Listo.</strong> La nueva contraseña de ${esc(x.nombre)} es <code>${esc(pw)}</code>. Anótala y entrégasela.`;}catch(e){fb.textContent=/function|does not exist|schema cache/i.test(String(e.message))?'Falta ejecutar el script v1.1.2 en Supabase.':errMsg(e);}$('#pw-go').disabled=false;};
   const pts=att.map((a,i)=>({x:i+1,y:+a.score,cls:SUBCLS[subjIdx(a.subject_id)]})),roll=att.map((a,i)=>[i+1,att.slice(Math.max(0,i-4),i+1).reduce((s,z)=>s+ +z.score,0)/Math.min(5,i+1)]);
   $('#st-ch').innerHTML=att.length?chart({W:cw($('#st-ch')),xmin:0.5,xmax:Math.max(2,att.length)+0.5,ymin:0,ymax:10.5,yticks:[0,2,4,6,8,10],label:'Evolución de notas',xlabel:'Número de prueba',xfmt:v=>nf(v,0),xticks:niceTicks(1,Math.max(2,att.length),8).filter(Number.isInteger),
     curves:[{cls:'ink thin',pts:roll}],hlines:[{y:APROB,cls:'acc',label:`aprobación ${APROB}`}],points:pts.map(p=>({x:p.x,y:p.y,cls:'sc '+p.cls}))})+legend(CIMA.subjects.map((s,i)=>[SUBCLS[i],s.nombre])):'<p class="note">Este estudiante aún no ha hecho pruebas.</p>';
@@ -190,4 +197,51 @@ function tabExportar(T,X){
   });
   if(DEMO){$('#demo-seed').onclick=async()=>{await API.seedDemo();viewReload();};$('#demo-clear').onclick=async()=>{await API.clearDemo();viewReload();};}
 }
-async function viewReload(){const [profiles,sessions,attempts,certificates]=await Promise.all(['profiles','sessions','attempts','certificates'].map(t=>API.all(t)));D.raw={profiles,sessions,attempts,certificates};D.tab='resumen';renderDash();}
+async function viewReload(){const [profiles,sessions,attempts,certificates]=await Promise.all(['profiles','sessions','attempts','certificates'].map(t=>API.all(t)));let sug=null;try{sug=await API.allSuggestions();}catch(_){}D.raw={profiles,sessions,attempts,certificates,sug};D.tab='resumen';renderDash();}
+
+/* ---------------- Certificados emitidos ---------------- */
+const certTopic=(sid,tid)=>{const t=CIMA.topic(sid,tid);return t?`${t.n} ${t.short}`:tid;};
+function tabCertificados(T,X){
+  const pmap=Object.fromEntries(D.raw.profiles.map(p=>[p.id,p]));
+  const certs=[...X.certs].sort((a,b)=>a.subject_id.localeCompare(b.subject_id)||String(pmap[a.user_id]?.nombre||a.nombre).localeCompare(String(pmap[b.user_id]?.nombre||b.nombre),'es'));
+  const sub=D.f.subject==='*'?null:CIMA.subject(D.f.subject);
+  T.innerHTML=`<section class="panel"><div class="sec-head"><h2>Certificados emitidos${sub?' · '+esc(sub.nombre):''}</h2><p>${certs.length} certificado${certs.length===1?'':'s'} con los filtros actuales. Toca una fila para ver el detalle por tema. La calificación final es el promedio de las mejores notas; el primer intento se muestra como referencia.</p></div>
+   ${certs.length?`<div class="table-wrap"><table class="tbl cert-tbl"><thead><tr><th>Estudiante</th><th>Paralelo</th><th>Materia</th><th>Fecha</th><th>Código</th><th>Versión</th><th>Final</th><th>1.er intento</th></tr></thead><tbody>
+   ${certs.map((c,i)=>`<tr class="cert-row" data-i="${i}" tabindex="0"><td>${esc(pmap[c.user_id]?.nombre||c.nombre)}</td><td>${esc(pmap[c.user_id]?.paralelo||'—')}</td><td>${esc(c.materia)}</td><td>${new Date(c.issued_at).toLocaleDateString('es-EC')}</td><td class="mono">${esc(c.code)}</td><td>${esc(c.version||'—')}</td><td><b>${fmt(+c.promedio,2)}</b></td><td>${c.promedio_primer!=null?fmt(+c.promedio_primer,2):'—'}</td></tr>
+     <tr class="cert-det" data-d="${i}" hidden><td colspan="8">${certDetail(c)}</td></tr>`).join('')}</tbody></table></div>
+   <div class="btn-row"><button type="button" class="btn" id="cx-1">Exportar certificados (Excel)</button><button type="button" class="btn btn-ghost" id="cx-2">Exportar detalle por tema</button></div>`
+   :`<p class="note">Aún no hay certificados emitidos${sub?' en esta materia':''}.</p>`}</section>`;
+  T.querySelectorAll('.cert-row').forEach(r=>{const h=()=>{const d=T.querySelector(`[data-d="${r.dataset.i}"]`);d.hidden=!d.hidden;r.classList.toggle('open',!d.hidden);};r.onclick=h;r.onkeydown=e=>{if(e.key==='Enter')h();};});
+  const stamp=new Date().toLocaleDateString('en-CA');
+  const b1=$('#cx-1');if(b1)b1.onclick=()=>download(`cima-certificados-${stamp}.csv`,csv([['Estudiante','Correo','Paralelo','Materia','Fecha','Código','Versión','Temas','Calificación final','Promedio primer intento'],...certs.map(c=>[pmap[c.user_id]?.nombre||c.nombre,pmap[c.user_id]?.email||'',pmap[c.user_id]?.paralelo||'',c.materia,new Date(c.issued_at).toLocaleDateString('es-EC'),c.code,c.version||'',c.temas,fmt(+c.promedio,2),c.promedio_primer!=null?fmt(+c.promedio_primer,2):''])]));
+  const b2=$('#cx-2');if(b2)b2.onclick=()=>download(`cima-certificados-detalle-${stamp}.csv`,csv([['Estudiante','Paralelo','Materia','Código','Tema','Primer intento','Mejor nota','Intentos'],...certs.flatMap(c=>(c.detalle||[]).map(d=>[pmap[c.user_id]?.nombre||c.nombre,pmap[c.user_id]?.paralelo||'',c.materia,c.code,certTopic(c.subject_id,d.topic),d.primera!=null?fmt(+d.primera,1):'',d.mejor!=null?fmt(+d.mejor,1):'',d.intentos]))]));
+}
+function certDetail(c){if(!c.detalle||!c.detalle.length)return'<p class="note">Este certificado no tiene detalle por tema (se completa al ejecutar el script v1.1.2).</p>';
+  return`<table class="tbl mini"><thead><tr><th>Tema</th><th>Primer intento</th><th>Mejor nota</th><th>Intentos</th></tr></thead><tbody>${c.detalle.map(d=>`<tr><td>${esc(certTopic(c.subject_id,d.topic))}</td><td>${d.primera!=null?fmt(+d.primera,1):'—'}</td><td><b>${d.mejor!=null?fmt(+d.mejor,1):'—'}</b></td><td>${d.intentos??0}</td></tr>`).join('')}</tbody></table>`;}
+
+/* ---------------- Buzón de sugerencias ---------------- */
+const SUG_T={error:'Error',tema:'Tema nuevo',simulador:'Simulador',idea:'Otra idea'};
+const SUG_E={nueva:'Nueva',revision:'En revisión',implementada:'Implementada',descartada:'Descartada'};
+function tabBuzon(T,X){
+  if(D.raw.sug==null){T.innerHTML='<section class="panel"><h2>Buzón no disponible</h2><p>Falta ejecutar el script <b>v1.1.2.sql</b> en Supabase. Cuando lo ejecutes, recarga esta página.</p></section>';return;}
+  const pmap=Object.fromEntries(D.raw.profiles.map(p=>[p.id,p]));D.sugF=D.sugF||'activas';
+  const inSub=r=>D.f.subject==='*'||r.subject_id===D.f.subject,inPar=r=>D.f.paralelo==='*'||pmap[r.user_id]?.paralelo===D.f.paralelo;
+  const all=D.raw.sug.filter(r=>inSub(r)&&inPar(r)),cnt=k=>all.filter(r=>r.estado===k).length;
+  const list=all.filter(r=>D.sugF==='todas'||(D.sugF==='activas'?['nueva','revision'].includes(r.estado):r.estado===D.sugF));
+  T.innerHTML=`<section class="panel"><div class="sec-head"><h2>Buzón de sugerencias</h2><p>Lo que reportan y proponen tus estudiantes. Al cambiar el estado o responder, el estudiante recibe un aviso.</p></div>
+   <div class="seg" id="sg-f">${[['activas',`Por atender (${cnt('nueva')+cnt('revision')})`],['nueva',`Nuevas (${cnt('nueva')})`],['revision',`En revisión (${cnt('revision')})`],['implementada',`Implementadas (${cnt('implementada')})`],['descartada',`Descartadas (${cnt('descartada')})`],['todas',`Todas (${all.length})`]].map(([k,t])=>`<button type="button" data-k="${k}" aria-pressed="${D.sugF===k}">${t}</button>`).join('')}</div>
+   <div class="sug-list">${list.length?list.map(r=>{const p=pmap[r.user_id]||{},t=r.topic_id?CIMA.topic(r.subject_id,r.topic_id):null,s=r.subject_id?CIMA.subject(r.subject_id):null;
+     return`<article class="sug st-${r.estado}" data-id="${r.id}"><header><span class="chip ${r.estado==='implementada'?'ok':r.estado==='nueva'?'mid':''}">${SUG_E[r.estado]}</span><b>${SUG_T[r.tipo]||r.tipo}</b><span class="note">${esc(p.nombre||'—')} · ${esc(p.paralelo||'')} · ${new Date(r.created_at).toLocaleString('es-EC')}</span></header>
+      ${s?`<p class="note">${esc(s.nombre)}${t?` · ${esc(t.n)} ${esc(t.short)}`:''}</p>`:''}<p class="sug-msg">${esc(r.mensaje)}</p>
+      ${r.imagen?`<button type="button" class="sug-img" data-img="${esc(r.imagen)}">Ver captura de pantalla</button>`:''}
+      ${r.contexto?`<p class="note sug-ctx">Versión ${esc(r.contexto.version||'')} · pantalla ${esc(r.contexto.pantalla||'')}</p>`:''}
+      <div class="sug-act"><label class="ctrl"><span>Estado</span><select data-e>${Object.entries(SUG_E).map(([k,v])=>`<option value="${k}"${k===r.estado?' selected':''}>${v}</option>`).join('')}</select></label>
+      <label class="ctrl sug-resp"><span>Respuesta para el estudiante</span><textarea class="inp" rows="2" maxlength="2000" data-r>${esc(r.respuesta||'')}</textarea></label><button type="button" class="btn btn-sm" data-save>Guardar</button><span class="note" data-msg></span></div></article>`;}).join(''):'<p class="note">No hay sugerencias en esta vista.</p>'}</div></section>`;
+  T.querySelectorAll('#sg-f button').forEach(b=>b.onclick=()=>{D.sugF=b.dataset.k;renderDash();});
+  T.querySelectorAll('.sug').forEach(a=>{const r=D.raw.sug.find(x=>x.id===a.dataset.id);
+    a.querySelector('[data-save]').onclick=async()=>{const m=a.querySelector('[data-msg]');const patch={estado:a.querySelector('[data-e]').value,respuesta:a.querySelector('[data-r]').value.trim()||null};
+      try{const u=await API.updateSuggestion(r.id,patch);Object.assign(r,u||patch);m.textContent='Guardado. El estudiante verá el aviso.';setTimeout(()=>renderDash(),900);}catch(e){m.textContent=errMsg(e);}};
+    const ib=a.querySelector('.sug-img');if(ib)ib.onclick=async()=>{ib.textContent='Abriendo…';try{const u=await API.imageUrl(ib.dataset.img);showImage(u);}catch(e){alertBox(errMsg(e));}ib.textContent='Ver captura de pantalla';};});
+}
+function showImage(url){const o=el(`<div class="lightbox" role="dialog" aria-label="Captura de pantalla"><img alt="Captura enviada por el estudiante" src="${esc(url)}"><button type="button" class="btn">Cerrar</button></div>`);o.onclick=e=>{if(e.target===o||e.target.tagName==='BUTTON')o.remove();};document.body.append(o);}
+function alertBox(t){toast(esc(t),'');}

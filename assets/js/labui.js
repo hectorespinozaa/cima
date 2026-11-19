@@ -23,7 +23,7 @@ function steps(p,list,done){
       box.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>{const o=opts[+b.dataset.j];box.querySelectorAll('.opt').forEach((x,j)=>{x.disabled=true;if(opts[j][1])x.classList.add('is-ok');});if(!o[1])b.classList.add('is-bad');
         box.querySelector('.fb').innerHTML=(o[1]?'<strong>Bien.</strong> ':'<strong>No.</strong> ')+(o[2]||opts.find(x=>x[1])[2]||'');finish();}));}
     else{box.innerHTML=`<p><b>${q.text}</b></p><div class="ans-row"><input class="inp" inputmode="decimal" aria-label="Respuesta"><button type="button" class="btn">Comprobar</button></div><p class="fb"></p>`;const inp=box.querySelector('input'),bt=box.querySelector('button');
-      const go=()=>{const v=parseNum(inp.value);if(!Number.isFinite(v)){box.querySelector('.fb').textContent='Escribe un número (puedes usar coma decimal).';return;}const ok=Math.abs(v-q.answer)<=(q.tol??1e-6)+1e-9;inp.disabled=bt.disabled=true;inp.classList.add(ok?'good':'bad');box.querySelector('.fb').innerHTML=(ok?'<strong>Bien.</strong> ':'<strong>No.</strong> ')+q.explain;finish();};
+      const go=()=>{const v=readAnswer(inp.value,q);if(!Number.isFinite(v)){box.querySelector('.fb').textContent='Escribe un número (puedes usar coma decimal).';return;}const ok=answerOk(v,q);inp.disabled=bt.disabled=true;inp.classList.add(ok?'good':'bad');box.querySelector('.fb').innerHTML=(ok?'<strong>Bien.</strong> ':'<strong>No.</strong> ')+q.explain;finish();};
       bt.addEventListener('click',go);inp.addEventListener('keydown',e=>{if(e.key==='Enter')go();});}}
   add(0);}
 

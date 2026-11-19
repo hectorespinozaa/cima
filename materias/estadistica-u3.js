@@ -64,7 +64,7 @@ function quizIC(){const qs=[],c=pick(IC_CASES),n=rint(9,16),s=round(c.sd*rnd(0.8
   qs.push({type:'mc',text:'Para hacer el intervalo más angosto sin perder confianza, conviene…',options:['Aumentar el tamaño de la muestra','Usar un nivel de confianza mayor','Eliminar los datos más altos','Usar la desviación de una sola muestra'],answer:0,explain:'El margen depende de s/√n: más datos, menor margen.'});
   qs.push({type:'mc',mono:true,text:'¿Qué función de Excel en español da directamente el margen de error con t?',options:['=INTERVALO.CONFIANZA.T(0,05;s;n)','=PRUEBA.T(rango;0,05)','=DISTR.T.2C(0,05;n)','=PROMEDIO(rango)±0,05'],answer:0,explain:'<b>INTERVALO.CONFIANZA.T</b>(alfa; desviación; tamaño) devuelve el margen de error.'});
   const n2=pick([100,150,200,400]),x2=rint(Math.round(n2*0.05),Math.round(n2*0.3)),ph=x2/n2,e2=1.96*Math.sqrt(ph*(1-ph)/n2);
-  qs.push({type:'num',text:`De ${n2} envases revisados, ${x2} estaban mal sellados. ¿Cuál es el margen de error del IC 95 % para la proporción? (en %, con un decimal)`,unit:'%',answer:round(e2*100,1),tol:0.11,explain:`p̂ = ${fmt(ph,4)}; E = 1,96·√(${fmt(ph,4)}·${fmt(1-ph,4)}/${n2}) = ${fmt(e2,4)} → <b>${fmt(e2*100,1)} %</b>.`});
+  qs.push({type:'num',text:`De ${n2} envases revisados, ${x2} estaban mal sellados. ¿Cuál es el margen de error del IC 95 % para la proporción? (en %, con un decimal)`,unit:'%',answer:round(e2*100,1),tol:0.01,explain:`p̂ = ${fmt(ph,4)}; E = 1,96·√(${fmt(ph,4)}·${fmt(1-ph,4)}/${n2}) = ${fmt(e2,4)} → <b>${fmt(e2*100,1)} %</b>.`});
   return qs;}
 
 /* =============== 3.2 Plantear hipótesis =============== */

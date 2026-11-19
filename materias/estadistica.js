@@ -196,7 +196,7 @@ function quizFreq(){
   const h3=f[2]/N,F4=f[0]+f[1]+f[2]+f[3];
   return [
    {type:'num',text:`Se pesaron <b>n = ${n}</b> latas. Según la regla de Sturges, ¿cuántas clases conviene usar? (redondea al entero más cercano)`,unit:'clases',answer:k,tol:0,explain:`k = 1 + 3,322·log₁₀(${n}) = ${fmt(kr,2)} ≈ <b>${k}</b> clases.`},
-   {type:'num',text:`En una muestra, el peso mínimo es ${fmt(mn,1)} g y el máximo ${fmt(mx,1)} g. ¿Cuál es el rango R?`,unit:'g',answer:R,tol:0.05,explain:`R = ${fmt(mx,1)} − ${fmt(mn,1)} = <b>${fmt(R,1)} g</b>.`},
+   {type:'num',text:`En una muestra, el peso mínimo es ${fmt(mn,1)} g y el máximo ${fmt(mx,1)} g. ¿Cuál es el rango R?`,unit:'g',answer:R,tol:0.01,explain:`R = ${fmt(mx,1)} − ${fmt(mn,1)} = <b>${fmt(R,1)} g</b>.`},
    {type:'num',text:`Con R = ${fmt(R,1)} g y k = ${k2} clases, ¿cuál es la amplitud A = R/k? (dos decimales)`,unit:'g',answer:round(A,2),tol:0.011,explain:`A = ${fmt(R,1)} / ${k2} = <b>${fmt(A,2)} g</b>. En la práctica se redondea hacia arriba para que todas las observaciones entren en alguna clase.`},
    {type:'num',text:`<span>Observa esta tabla de pesos:</span>${tbl}<span>¿Cuál es la frecuencia relativa h₃ de la tercera clase? (tres decimales)</span>`,answer:round(h3,3),tol:0.0015,explain:`h₃ = f₃ / n = ${f[2]} / ${N} = <b>${fmt(h3,3)}</b> (≈ ${fmt(h3*100,1)} % de las latas).`},
    {type:'num',text:`Con la misma tabla, ¿cuál es la frecuencia absoluta acumulada F₄?`,answer:F4,tol:0,explain:`F₄ = ${f[0]} + ${f[1]} + ${f[2]} + ${f[3]} = <b>${F4}</b>: son las latas que pesan menos de ${L0+4*w} g.`},
@@ -305,7 +305,7 @@ function quizDisp(){
   const cvA=sA/mA*100,cvB=sB/mB*100;
   const list=`<span class="data">${d.map(x=>fmt(x,1)).join(' · ')}</span>`;
   return [
-   {type:'num',text:`Humedad (%) de 5 lotes de harina: ${list}<span>¿Cuál es el <b>rango</b>?</span>`,unit:'%',answer:R,tol:0.05,explain:`R = ${fmt(Math.max(...d),1)} − ${fmt(Math.min(...d),1)} = <b>${fmt(R,1)}</b>.`},
+   {type:'num',text:`Humedad (%) de 5 lotes de harina: ${list}<span>¿Cuál es el <b>rango</b>?</span>`,unit:'%',answer:R,tol:0.01,explain:`R = ${fmt(Math.max(...d),1)} − ${fmt(Math.min(...d),1)} = <b>${fmt(R,1)}</b>.`},
    {type:'num',text:`Con los mismos datos (${list}), calcula la <b>varianza muestral</b> s² (tres decimales).`,answer:round(v,3),tol:Math.max(0.006,v*0.02),explain:`x̄ = ${fmt(m,2)}. s² = Σ(xᵢ − x̄)² / (n − 1) = ${fmt(v*4,3)} / 4 = <b>${fmt(v,3)}</b>. En Excel: =VAR.S(rango).`},
    {type:'num',text:`¿Cuál es la <b>desviación estándar</b> s? (tres decimales)`,unit:'%',answer:round(s,3),tol:Math.max(0.006,s*0.02),explain:`s = √s² = √${fmt(v,3)} = <b>${fmt(s,3)}</b>. En Excel: =DESVEST.M(rango).`},
    {type:'num',text:`¿Cuál es el <b>coeficiente de variación</b> CV en %? (dos decimales)`,unit:'%',answer:round(cv,2),tol:Math.max(0.06,cv*0.02),explain:`CV = s / x̄ · 100 = ${fmt(s,3)} / ${fmt(m,2)} · 100 = <b>${fmt(cv,2)} %</b>.`},

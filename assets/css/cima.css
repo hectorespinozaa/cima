@@ -692,3 +692,36 @@ body.proj .wrap{max-width:1400px}body.proj .formula,body.proj .expr{font-size:1.
 /* ===== v1.1.1 · Modo práctica del docente ===== */
 .prac-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:10px 14px;margin:14px 0 4px;font-size:14px}
 .prac-links{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+/* ===== v1.1.2 · Buzón, certificados, app instalable ===== */
+.toplinks a .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:5px;vertical-align:top}
+.tab-n{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;margin-left:4px}
+.chip.ref{margin-left:6px;background:var(--surface-2);color:var(--muted);border:1px dashed var(--line);font-size:11px;vertical-align:middle}
+body.modal-open{overflow:hidden}
+.modal-ov{position:fixed;inset:0;z-index:70;background:rgba(10,18,30,.55);display:grid;place-items:center;padding:16px;overflow:auto}
+.modal{width:min(560px,100%);display:grid;gap:12px;margin:0}.modal h2{margin:0}.modal textarea{resize:vertical;min-height:90px;font:inherit}
+.sg-file{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+#sg-prev{max-width:100%;max-height:220px;object-fit:contain;border:1px solid var(--line);border-radius:8px;justify-self:start}
+.sug-list{display:grid;gap:12px;margin-top:12px}
+.sug{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:6px;background:var(--surface);min-width:0}
+.sug header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.sug p{margin:0}
+.sug.st-nueva{border-left:4px solid var(--accent)}.sug.st-revision{border-left:4px solid var(--data)}.sug.st-implementada{border-left:4px solid var(--good)}.sug.st-descartada{opacity:.8}
+.sug.unseen{box-shadow:0 0 0 2px var(--accent)}
+.sug-msg{white-space:pre-wrap;overflow-wrap:anywhere}
+.sug-reply{background:var(--good-soft);border-radius:8px;padding:8px 10px}
+.sug-img{justify-self:start;font:inherit;font-size:13px;background:none;border:1px dashed var(--data);color:var(--data);border-radius:8px;padding:5px 10px;cursor:pointer}
+.sug-act{display:grid;grid-template-columns:180px 1fr auto;gap:10px;align-items:end}.sug-act textarea{font:inherit;resize:vertical}
+@media (max-width:640px){.sug-act{grid-template-columns:1fr}}
+.lightbox{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.85);display:grid;place-items:center;gap:12px;padding:16px;grid-template-rows:1fr auto}
+.lightbox img{max-width:100%;max-height:85vh;object-fit:contain;border-radius:6px;background:#fff}
+.cert-tbl .cert-row{cursor:pointer}.cert-tbl .cert-row:hover td,.cert-tbl .cert-row.open td{background:var(--surface-2)}
+.cert-tbl .cert-det td{background:var(--surface-2)}
+.cert-det-page{background:#fff;color:#14233a;max-width:1000px;margin:18px auto 0;padding:24px 28px;border-radius:6px;box-shadow:0 6px 30px rgba(15,26,43,.15)}
+.cert-det-head{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:2px solid #1f4e8c;padding-bottom:8px;margin-bottom:12px}
+.cert-det-head h2{margin:2px 0 0;font-size:20px}
+.cert-dt{width:100%;color:#14233a}.cert-dt th,.cert-dt td{color:#14233a;border-color:#d8dee8}.cert-dt tfoot td{border-top:2px solid #1f4e8c;font-size:15px}
+.cert-det-page .note{color:#56637a}
+@media print{.cert-det-page{box-shadow:none;border-radius:0;max-width:none;margin:0;padding:12mm;break-before:page}}
+.inst{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;border-color:var(--data)}
+.inst p{margin:2px 0 0}
+.cert-dt td:first-child,.cert-dt th:first-child{font-family:var(--f-body);text-align:left}
+.cert-dt tfoot td{font-family:var(--f-body)}.cert-dt tfoot td:not(:first-child){font-family:var(--f-mono)}

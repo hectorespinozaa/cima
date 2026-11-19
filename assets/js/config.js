@@ -10,7 +10,7 @@ window.CIMA_CONFIG = {
   supabaseUrl: 'https://kxowpfkmimtwusbpsvov.supabase.co',
   supabaseKey: 'sb_publishable_-GOaNVGfDbtri33OVe4xLg_jf0jUsuU',
 
-  version: '1.1.1',
+  version: '1.1.2',
   docenteNombre: 'Ing. Héctor Espinoza',
   carrera: 'Alimentos',
   institucion: 'ULEAM',
@@ -19,6 +19,13 @@ window.CIMA_CONFIG = {
   proximamente: [],
 
   novedades: [
+    { v: '1.1.2', fecha: 'noviembre de 2026', items: [
+      'Buzón de sugerencias con capturas de pantalla, desde cada tema; el docente responde y el estudiante recibe el aviso.',
+      'Certificado con el detalle de cada tema: nota del primer intento, mejor nota e intentos, más la versión de CIMA.',
+      'Dashboard: pestañas Certificados y Buzón, y botón para restablecer contraseñas.',
+      'Respuestas numéricas: se acepta una diferencia de hasta 0,01 (segundo decimal) por redondeo; los enteros deben ser exactos. Se corrige el uso del signo %.',
+      'CIMA se puede instalar como app en el celular o la computadora.'
+    ]},
     { v: '1.1.1', fecha: 'noviembre de 2026', items: [
       'Modo práctica para el docente: botón Practicar para ver y usar CIMA como estudiante sin salir de la cuenta.'
     ]},

@@ -49,7 +49,18 @@ function remoteApi(){
     async addAttempt(row){chk(await sb.from('attempts').insert(row));},
     async mine(table,uid){return all(table,uid);},
     async all(table){return all(table);},
-    async emitCert(sid){return chk(await sb.rpc('emitir_certificado',{p_subject:sid}));},
+    async emitCert(sid){return chk(await sb.rpc('emitir_certificado',{p_subject:sid,p_version:CFG.version||null}));},
+    async resetPassword(uid,clave){chk(await sb.rpc('docente_cambiar_clave',{p_user:uid,p_clave:clave}));},
+    /* Buzón de sugerencias */
+    async addSuggestion(row,blob){let imagen=null;
+      if(blob){const uid=(await sb.auth.getUser()).data.user.id;imagen=`${uid}/${uuid()}.jpg`;
+        const {error}=await sb.storage.from('capturas').upload(imagen,blob,{contentType:'image/jpeg',upsert:false});if(error)throw error;}
+      return chk(await sb.from('sugerencias').insert({...row,imagen}).select('*').single());},
+    async mySuggestions(uid){return chk(await sb.from('sugerencias').select('*').eq('user_id',uid).order('created_at',{ascending:false}));},
+    async allSuggestions(){return chk(await sb.from('sugerencias').select('*').order('created_at',{ascending:false}));},
+    async updateSuggestion(id,patch){return chk(await sb.from('sugerencias').update(patch).eq('id',id).select('*').single());},
+    async markSuggestionsSeen(){await sb.rpc('marcar_sugerencias_vistas');},
+    async imageUrl(path){if(!path)return null;const {data,error}=await sb.storage.from('capturas').createSignedUrl(path,3600);if(error)throw error;return data.signedUrl;},
     async verify(code){const d=chk(await sb.rpc('verificar_certificado',{p_code:code}));return d&&d[0]||null;},
     async syncCatalog(rows){chk(await sb.from('subjects').upsert(rows));},
   };
@@ -59,7 +70,7 @@ function remoteApi(){
 function localApi(){
   const K='cima-demo-v1';
   const load=()=>{try{return JSON.parse(localStorage.getItem(K))||null;}catch(_){return null;}};
-  let db=load()||{users:[],profiles:[],sessions:[],attempts:[],certificates:[],subjects:[],current:null};
+  let db=load()||{users:[],profiles:[],sessions:[],attempts:[],certificates:[],subjects:[],sugerencias:[],current:null};
   const save=()=>{try{localStorage.setItem(K,JSON.stringify(db));}catch(_){}};
   const me=()=>db.current;
   const isDoc=()=>{const p=db.profiles.find(x=>x.id===me());return p&&p.rol==='docente';};
@@ -89,9 +100,19 @@ function localApi(){
       const ok=s.topics.filter(t=>(best[t]||0)>=7).length;
       if(ok<s.topics.length)throw new Error(`Aún no apruebas todos los temas (${ok} de ${s.topics.length})`);
       const p=db.profiles.find(x=>x.id===me()),r4=()=>Math.random().toString(36).slice(2,6).toUpperCase();
-      const c={code:`CIMA-${r4()}-${r4()}`,user_id:me(),subject_id:sid,nombre:p.nombre,materia:s.nombre,promedio:Math.round(s.topics.reduce((a,t)=>a+best[t],0)/s.topics.length*100)/100,temas:s.topics.length,issued_at:new Date().toISOString()};
+      const detalle=s.topics.map(t=>{const at=db.attempts.filter(a=>a.user_id===me()&&a.subject_id===sid&&a.topic_id===t).sort((x,y)=>new Date(x.created_at)-new Date(y.created_at));return{topic:t,primera:at[0].score,mejor:best[t],intentos:at.length};});
+      const avg=k=>Math.round(detalle.reduce((a,d)=>a+ +d[k],0)/detalle.length*100)/100;
+      const c={code:`CIMA-${r4()}-${r4()}`,user_id:me(),subject_id:sid,nombre:p.nombre,materia:s.nombre,promedio:avg('mejor'),promedio_primer:avg('primera'),temas:s.topics.length,version:CFG.version||'',detalle,temas_req:s.topics,issued_at:new Date().toISOString()};
       db.certificates.push(c);save();return c;},
     async verify(code){return db.certificates.find(c=>c.code===code.trim().toUpperCase())||null;},
+    async resetPassword(uid,clave){if(!isDoc())throw new Error('Solo el docente puede restablecer contraseñas');if(String(clave).length<8)throw new Error('La contraseña debe tener al menos 8 caracteres');const u=db.users.find(x=>x.id===uid);if(!u)throw new Error('No se encontró la cuenta');u.password=clave;save();},
+    async addSuggestion(row,blob){let imagen=null;if(blob){imagen=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(blob);});}
+      db.sugerencias=db.sugerencias||[];const r={id:uuid(),user_id:me(),estado:'nueva',respuesta:null,visto:true,created_at:new Date().toISOString(),updated_at:new Date().toISOString(),...row,imagen};db.sugerencias.unshift(r);save();return r;},
+    async mySuggestions(uid){return(db.sugerencias||[]).filter(r=>r.user_id===uid);},
+    async allSuggestions(){return isDoc()?(db.sugerencias||[]):[];},
+    async updateSuggestion(id,patch){const r=(db.sugerencias||[]).find(x=>x.id===id);if(!r)throw new Error('No encontrada');const ch=('estado' in patch&&patch.estado!==r.estado)||('respuesta' in patch&&patch.respuesta!==r.respuesta);Object.assign(r,patch);if(ch){r.visto=false;r.updated_at=new Date().toISOString();}save();return r;},
+    async markSuggestionsSeen(){(db.sugerencias||[]).forEach(r=>{if(r.user_id===me())r.visto=true;});save();},
+    async imageUrl(path){return path||null;},
     async syncCatalog(rows){rows.forEach(r=>{const i=db.subjects.findIndex(s=>s.id===r.id);if(i>=0)db.subjects[i]=r;else db.subjects.push(r);});save();},
     /* Solo demo: genera estudiantes ficticios para previsualizar el dashboard */
     async seedDemo(){

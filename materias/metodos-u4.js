@@ -383,7 +383,7 @@ function quizMezclas(){
     explain:'La proteína total en kg debe ser el 20 % de 100 kg = 20 kg. Cada harina aporta su % por los kg usados: <b>0,12x + 0,38y = 20</b>.'});
   const xs=[rint(4,12)*5,rint(1,6)*5];xs.push(100-xs[0]-xs[1]);if(xs[2]<5){xs[0]-=10;xs[2]+=10;}
   const P=xs.reduce((t,q,i)=>t+q*FL[i].p,0)/100,G=xs.reduce((t,q,i)=>t+q*FL[i].g,0)/100,i3=rint(0,2);
-  qs.push({type:'num',text:`Con las harinas del simulador (trigo 12 % prot. y 1,5 % grasa; soya 38 % y 20 %; quinua 14 % y 6 %) se quieren 100 kg con ${nf(P,3)} % de proteína y ${nf(G,3)} % de grasa. Resuelve el sistema 3 × 3: ¿cuántos kg de <b>${['trigo','soya','quinua'][i3]}</b>?`,unit:'kg',answer:xs[i3],tol:0.05,
+  qs.push({type:'num',text:`Con las harinas del simulador (trigo 12 % prot. y 1,5 % grasa; soya 38 % y 20 %; quinua 14 % y 6 %) se quieren 100 kg con ${nf(P,3)} % de proteína y ${nf(G,3)} % de grasa. Resuelve el sistema 3 × 3: ¿cuántos kg de <b>${['trigo','soya','quinua'][i3]}</b>? (dos decimales)`,unit:'kg',answer:xs[i3],tol:0.01,
     explain:`x + y + z = 100 · 0,12x + 0,38y + 0,14z = ${nf(P,3)} · 0,015x + 0,20y + 0,06z = ${nf(G,3)}. Con Gauss o Cramer: x = ${xs[0]}, y = ${xs[1]}, z = ${xs[2]}. Respuesta: <b>${xs[i3]} kg</b>.`});
   const cost=xs.reduce((t,q,i)=>t+q*FL[i].c,0);
   qs.push({type:'num',text:`Con esa mezcla (${xs[0]} kg de trigo, ${xs[1]} kg de soya y ${xs[2]} kg de quinua) y precios de 0,90, 2,10 y 3,20 USD/kg, ¿cuánto cuesta la mezcla?`,unit:'USD',answer:round(cost,2),tol:0.011,explain:`${xs.map((q,i)=>`${q}·${fmt(FL[i].c,2)}`).join(' + ')} = <b>${fmt(cost,2)} USD</b>.`});

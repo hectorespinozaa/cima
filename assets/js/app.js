@@ -4,7 +4,7 @@
    vistas del estudiante. El dashboard docente está en docente.js.
    ===================================================================== */
 const APROB=CFG.aprobacion||7;
-const S={user:null,profile:null,attempts:[],sessions:[],certs:[],ready:false};
+const S={user:null,profile:null,attempts:[],sessions:[],certs:[],sug:[],ready:false};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dayKey=d=>new Date(d).toLocaleDateString('en-CA');
 const hrs=s=>s/3600;
@@ -37,7 +37,7 @@ function streaks(days){
   sorted.forEach(k=>{const d=new Date(k+'T12:00:00');run=prev&&(d-prev)/864e5<1.5?run+1:1;best=Math.max(best,run);prev=d;});
   return{cur,best};
 }
-function subjectProgress(sid,attempts){const b=bestMap(attempts),ts=CIMA.topics(sid),ok=ts.filter(t=>(b[sid+'/'+t.id]??0)>=APROB).length;return{ok,total:ts.length,pct:ts.length?ok/ts.length:0};}
+function subjectProgress(sid,attempts){const b=bestMap(attempts),ts=CIMA.reqTopics(sid),ok=ts.filter(t=>(b[sid+'/'+t.id]??0)>=APROB).length;return{ok,total:ts.length,pct:ts.length?ok/ts.length:0};}
 const BADGES=[
  {id:'primer-paso',n:'Primer paso',d:'Termina tu primera prueba.',ic:'flag',f:c=>c.att.length>=1},
  {id:'primera-cumbre',n:'Primera cumbre',d:'Aprueba tu primer tema (nota 7 o más).',ic:'peak',f:c=>c.approved>=1},
@@ -107,8 +107,8 @@ function runQuiz(mod,box){
     }else{
       const id=`${mod.id}-q${i}`;
       const f=el(`<form class="num" novalidate><label for="${id}" class="sr">Tu respuesta</label><input id="${id}" inputmode="text" autocomplete="off" placeholder="${q.ph||'Tu respuesta'}"><span class="unit">${q.unit||''}</span><button class="btn">Comprobar</button><span class="warn" hidden>Escribe un número. Puedes usar coma decimal o una fracción como 3/4.</span></form>`);
-      f.addEventListener('submit',e=>{e.preventDefault();if(answered)return;const inp=f.querySelector('input'),v=parseNum(inp.value);if(!Number.isFinite(v)){f.querySelector('.warn').hidden=false;return;}f.querySelector('.warn').hidden=true;
-        const c=Math.abs(v-q.answer)<=(q.tol??0.01)+1e-9;inp.disabled=true;f.querySelector('button').disabled=true;finish(c);});
+      f.addEventListener('submit',e=>{e.preventDefault();if(answered)return;const inp=f.querySelector('input'),v=readAnswer(inp.value,q);if(!Number.isFinite(v)){f.querySelector('.warn').hidden=false;return;}f.querySelector('.warn').hidden=true;
+        const c=answerOk(v,q);inp.disabled=true;f.querySelector('button').disabled=true;finish(c);});
       ans.append(f);
     }
     box.append(card);
@@ -139,7 +139,7 @@ function runQuiz(mod,box){
 
 /* ---------------- Rutas ---------------- */
 let REDRAW=null;
-const PRAC=new Set(['practica','materia','tema','logros','certificados','certificado']);
+const PRAC=new Set(['practica','materia','tema','logros','certificados','certificado','buzon']);
 const PUBLIC=new Set(['','inicio','ingresar','registro','verificar','certificado','acerca']);
 function parse(){const h=(location.hash||'#/').replace(/^#\/?/,'');const p=h.split('/').map(decodeURIComponent);return{name:p[0]||'',args:p.slice(1)};}
 const go=h=>{if(location.hash===h)route();else location.hash=h;};
@@ -149,11 +149,11 @@ async function route(){
   if(!S.user&&!PUBLIC.has(name)){go('#/ingresar');return;}
   if(S.user&&(name==='ingresar'||name==='registro')){go('#/');return;}
   main.innerHTML='';renderTop(name);
-  if(S.user&&S.profile?.rol==='docente'&&PRAC.has(name))main.append(el(`<div class="prac-bar no-print"><span><b>Modo práctica</b> · ves CIMA como un estudiante. Tus resultados no aparecen en el dashboard.</span><span class="prac-links"><a href="#/practica">Inicio de práctica</a><a href="#/logros">Logros</a><a href="#/certificados">Certificados</a><a class="btn btn-sm" href="#/">← Volver al Dashboard</a></span></div>`));
-  const v={'':S.user?(S.profile?.rol==='docente'?viewDocente:viewHome):viewLanding,inicio:viewLanding,ingresar:m=>viewAuth(m,'in'),registro:m=>viewAuth(m,'up'),materia:viewSubject,tema:viewTopic,practica:viewHome,logros:viewLogros,certificados:viewCerts,certificado:viewCert,verificar:viewVerify,acerca:viewAcerca,docente:viewDocente,perfil:viewPerfil}[name]||viewNotFound;
+  if(S.user&&S.profile?.rol==='docente'&&PRAC.has(name))main.append(el(`<div class="prac-bar no-print"><span><b>Modo práctica</b> · ves CIMA como un estudiante. Tus resultados no aparecen en el dashboard.</span><span class="prac-links"><a href="#/practica">Inicio de práctica</a><a href="#/logros">Logros</a><a href="#/certificados">Certificados</a><a href="#/buzon">Buzón</a><a class="btn btn-sm" href="#/">← Volver al Dashboard</a></span></div>`));
+  const v={'':S.user?(S.profile?.rol==='docente'?viewDocente:viewHome):viewLanding,inicio:viewLanding,ingresar:m=>viewAuth(m,'in'),registro:m=>viewAuth(m,'up'),materia:viewSubject,tema:viewTopic,practica:viewHome,buzon:viewBuzon,logros:viewLogros,certificados:viewCerts,certificado:viewCert,verificar:viewVerify,acerca:viewAcerca,docente:viewDocente,perfil:viewPerfil}[name]||viewNotFound;
   const sid=name==='materia'||name==='tema'?args[0]:null;
   setContext(sid);
-  try{await v(main,...args);}catch(e){console.error(e);main.innerHTML=`<div class="view"><div class="panel"><h2>Algo salió mal</h2><p>${esc(errMsg(e))}</p><p><a href="#/">Volver al inicio</a></p></div></div>`;}
+  try{await v(main,...args);bindInstall();}catch(e){console.error(e);main.innerHTML=`<div class="view"><div class="panel"><h2>Algo salió mal</h2><p>${esc(errMsg(e))}</p><p><a href="#/">Volver al inicio</a></p></div></div>`;}
   window.scrollTo({top:0,behavior:'auto'});
   const t=$('#main h1');document.title=(t?t.textContent+' · ':'')+'CIMA';
 }
@@ -168,10 +168,10 @@ function renderTop(active){
   const doc=S.profile?.rol==='docente';
   $('#top').innerHTML=`<div class="wrap top-in">
     <a class="brand" href="#/" aria-label="CIMA, inicio">${ICON(34)}<span class="brand-t"><b>CIMA</b><small>v${esc(CFG.version)}</small></span></a>
-    <nav class="toplinks" aria-label="Principal">${S.user?(doc?link('#/','Dashboard','')+`<a href="#/practica"${PRAC.has(active)?' aria-current="page"':''}>Practicar</a>`+link('#/acerca','Acerca','acerca'):link('#/','Inicio','')+link('#/logros','Logros','logros')+link('#/certificados','Certificados','certificados')):link('#/','Inicio','')+link('#/verificar','Verificar certificado','verificar')+link('#/acerca','Acerca','acerca')}</nav>
+    <nav class="toplinks" aria-label="Principal">${S.user?(doc?link('#/','Dashboard','')+`<a href="#/practica"${PRAC.has(active)?' aria-current="page"':''}>Practicar</a>`+link('#/acerca','Acerca','acerca'):link('#/','Inicio','')+link('#/logros','Logros','logros')+link('#/certificados','Certificados','certificados')+`<a href="#/buzon"${active==='buzon'?' aria-current="page"':''}>Buzón${S.sug.some(r=>!r.visto)?'<i class="dot" aria-label="respuesta nueva"></i>':''}</a>`):link('#/','Inicio','')+link('#/verificar','Verificar certificado','verificar')+link('#/acerca','Acerca','acerca')}</nav>
     <div class="topuser">${S.user?`${doc&&!PRAC.has(active)?'':`<a class="lvl-pill" href="#/logros" title="Tu nivel">${esc(L.lv.n)} · ${xp} XP</a>`}<a class="who" href="#/perfil" title="Mi perfil">${esc((S.profile?.nombre||'').split(' ')[0]||'Perfil')}</a><button type="button" class="btn btn-ghost btn-sm" id="logout">Salir</button>`:`<a class="btn btn-ghost btn-sm" href="#/ingresar">Ingresar</a><a class="btn btn-sm" href="#/registro">Crear cuenta</a>`}</div></div>
     ${DEMO?'<div class="demo-bar">Modo demostración: los datos se guardan solo en este navegador. Conecta Supabase en config.js para usar la plataforma real.</div>':''}`;
-  const lo=$('#logout');if(lo)lo.onclick=async()=>{await flush();await API.signOut();S.user=null;S.profile=null;S.attempts=[];S.sessions=[];S.certs=[];T.subject=undefined;T.sid=null;go('#/');};
+  const lo=$('#logout');if(lo)lo.onclick=async()=>{await flush();await API.signOut();S.user=null;S.profile=null;S.attempts=[];S.sessions=[];S.certs=[];S.sug=[];T.subject=undefined;T.sid=null;go('#/');};
 }
 
 /* ---------------- Vistas públicas ---------------- */
@@ -223,7 +223,7 @@ async function viewVerify(main,code){
   main.append(el(`<div class="view"><header class="head"><p class="eyebrow">Verificación pública</p><h1>Verificar un certificado</h1><p class="lead">Escribe el código que aparece en el certificado (por ejemplo CIMA-7K2D-Q9XA).</p></header>
    <section class="panel"><form id="vf" class="ctrls" novalidate><label class="ctrl" style="flex-basis:280px"><span>Código</span><input class="inp mono" id="v-c" value="${esc(code||'')}" autocomplete="off"></label><button class="btn">Verificar</button></form><div id="v-r"></div></section>${footer()}</div>`));
   const run=async()=>{const c=$('#v-c').value.trim();if(!c)return;const r=$('#v-r');r.innerHTML='<p class="note">Consultando…</p>';
-    try{const d=await API.verify(c);r.innerHTML=d?`<div class="verdict ok"><b>Certificado válido.</b> ${esc(d.nombre)} aprobó <b>${esc(d.materia)}</b> en CIMA (${d.temas} temas, promedio ${fmt(+d.promedio,2)} / 10) el ${fmtDate(d.issued_at)}. <a href="#/certificado/${esc(d.code)}">Ver certificado</a></div>`:'<div class="verdict bad"><b>No encontramos ese código.</b> Revisa que esté escrito exactamente como aparece en el certificado.</div>';}
+    try{const d=await API.verify(c);r.innerHTML=d?`<div class="verdict ok"><b>Certificado válido.</b> ${esc(d.nombre)} aprobó <b>${esc(d.materia)}</b> en CIMA (${d.temas} temas, calificación final ${fmt(+d.promedio,2)} / 10) el ${fmtDate(d.issued_at)}${d.version?`, con CIMA ${esc(verTxt(d.version))}`:''}. <a href="#/certificado/${esc(d.code)}">Ver certificado</a></div>`:'<div class="verdict bad"><b>No encontramos ese código.</b> Revisa que esté escrito exactamente como aparece en el certificado.</div>';}
     catch(e){r.innerHTML=`<div class="verdict bad">${esc(errMsg(e))}</div>`;}};
   $('#vf').addEventListener('submit',e=>{e.preventDefault();run();});if(code)run();
 }
@@ -263,7 +263,7 @@ function viewHome(main){
     const go2=nxt||t;cont=`<section class="panel continue"><div><p class="eyebrow">Continúa donde te quedaste</p><h2>${esc(go2.n)} ${esc(go2.title)}</h2><p class="note">${esc(CIMA.subject(go2.subject).nombre)}${nxt&&nxt!==t?` · ya aprobaste ${esc(t.short)}, sigue con el próximo tema`:''}</p></div><a class="btn btn-lg" href="#/tema/${go2.subject}/${go2.id}">Continuar →</a></section>`;}}
   const eb=earned(S.attempts,S.sessions,S.certs);
   main.append(el(`<div class="view"><header class="head"><p class="eyebrow">Hola, ${esc((S.profile?.nombre||'').split(' ')[0])}</p><h1>Tu ascenso</h1></header>
-   ${levelCard()}${cont}
+   ${levelCard()}${cont}${installCard()}
    <section class="grid-sec"><h2>Materias</h2><div class="cards subj">${subs.map(s=>{const p=subjectProgress(s.id,S.attempts);return`<a class="card" href="#/materia/${s.id}"><span class="card-top"><span class="num">${esc(s.nivel)}</span><span class="chip ${p.ok===p.total&&p.total?'ok':p.ok?'mid':''}">${p.ok}/${p.total}</span></span><span class="card-title">${esc(s.nombre)}</span><span class="card-desc">${esc(s.descripcion)}</span><span class="pbar"><span style="width:${Math.round(p.pct*100)}%"></span></span></a>`;}).join('')}</div></section>
    <section class="grid-sec"><div class="sec-row"><h2>Insignias</h2><a href="#/logros">Ver todas →</a></div><div class="badges mini">${BADGES.filter(x=>eb.has(x.id)).slice(-6).map(x=>`<div class="bdg on">${badgeSvg(x.ic,true)}<b>${x.n}</b></div>`).join('')||'<p class="note">Aún no tienes insignias. Termina tu primera prueba para ganar “Primer paso”.</p>'}</div></section>
    ${footer()}</div>`));
@@ -274,7 +274,7 @@ function viewSubject(main,sid){
   main.append(el(`<div class="view"><header class="head"><p class="eyebrow"><a href="#/">Inicio</a> / ${esc(s.nivel)}</p><h1>${esc(s.nombre)}</h1><p class="lead">${esc(s.descripcion)}</p>
    <div class="pbar big"><span style="width:${Math.round(p.pct*100)}%"></span></div><p class="note">${p.ok} de ${p.total} temas aprobados ${cert?`· <a href="#/certificado/${cert.code}">Ver tu certificado</a>`:p.ok===p.total&&p.total?'· <a href="#/certificados"><b>¡Ya puedes obtener tu certificado!</b></a>':''}</p></header>
    ${s.units.map(u=>`<section class="panel unit"><div class="sec-head"><h2>${esc(u.nombre)}</h2></div><ol class="topics">${u.topics.map(t=>{const k=sid+'/'+t.id,bb=b[k],n=c[k]||0,stt=bb===undefined?'nuevo':bb>=APROB?'aprobado':'en progreso';
-     return`<li><a class="topic-row" href="#/tema/${sid}/${t.id}"><span class="num">${esc(t.n)}</span><span class="t-main"><b>${esc(t.title)}</b><span class="note">${esc(t.desc||'')}</span></span><span class="t-stat"><span class="chip ${stt==='aprobado'?'ok':stt==='en progreso'?'mid':''}">${stt}</span><span class="note">${bb!==undefined?`mejor ${fmt(bb,1)} · ${n} intento${n===1?'':'s'}`:'sin intentos'}</span></span></a></li>`;}).join('')}</ol></section>`).join('')}
+     return`<li><a class="topic-row" href="#/tema/${sid}/${t.id}"><span class="num">${esc(t.n)}</span><span class="t-main"><b>${esc(t.title)}${t.refuerzo?' <span class="chip ref">refuerzo</span>':''}</b><span class="note">${esc(t.desc||'')}</span></span><span class="t-stat"><span class="chip ${stt==='aprobado'?'ok':stt==='en progreso'?'mid':''}">${stt}</span><span class="note">${bb!==undefined?`mejor ${fmt(bb,1)} · ${n} intento${n===1?'':'s'}`:'sin intentos'}</span></span></a></li>`;}).join('')}</ol></section>`).join('')}
    ${footer()}</div>`));
 }
 function viewTopic(main,sid,tid){
@@ -282,7 +282,7 @@ function viewTopic(main,sid,tid){
   const all=CIMA.topics(sid),i=all.indexOf(m),prev=all[i-1],next=all[i+1],unit=s.units.find(u=>u.id===m.unit);
   const v=el(`<article class="view">
     <header class="head"><p class="eyebrow"><a href="#/materia/${sid}">${esc(s.nombre)}</a> / ${esc(unit?unit.nombre:'')}</p><h1><span class="tnum">${esc(m.n)}</span> ${esc(m.title)}</h1><p class="lead">${m.lead}</p></header>
-    <div class="topic-tools no-print"><button type="button" class="btn btn-ghost btn-sm" id="proj">Modo proyector</button>${S.profile?.rol==='docente'?'<button type="button" class="btn btn-ghost btn-sm" id="ws">Hoja de ejercicios para imprimir</button>':''}</div>
+    <div class="topic-tools no-print"><button type="button" class="btn btn-ghost btn-sm" id="sug">Reportar un error o sugerir</button><button type="button" class="btn btn-ghost btn-sm" id="proj">Modo proyector</button>${S.profile?.rol==='docente'?'<button type="button" class="btn btn-ghost btn-sm" id="ws">Hoja de ejercicios para imprimir</button>':''}</div>
     <section class="idea" aria-labelledby="idea-h"><h2 id="idea-h">Idea clave</h2>${m.idea}</section>
     <section class="panel" aria-labelledby="sim-h"><div class="sec-head"><h2 id="sim-h">Simulador</h2><p>${m.simHint}</p></div><div class="sim-body"></div></section>
     <section class="panel" aria-labelledby="quiz-h"><div class="sec-head"><h2 id="quiz-h">Pruébate</h2><p>Cada intento trae ejercicios nuevos. Apruebas con ${APROB} o más y se guarda tu mejor nota.</p></div><div class="quiz-body"></div></section>
@@ -292,6 +292,7 @@ function viewTopic(main,sid,tid){
   REDRAW=m.sim(v.querySelector('.sim-body'))||null;
   runQuiz(m,v.querySelector('.quiz-body'));
   v.querySelector('#proj').addEventListener('click',()=>projector(true));
+  v.querySelector('#sug').addEventListener('click',()=>openSuggest(sid,tid));
   const wb=v.querySelector('#ws');if(wb)wb.addEventListener('click',()=>worksheet(s,m));
 }
 /* Modo proyector: letra grande, sin barra superior */
@@ -333,7 +334,7 @@ function viewCerts(main){
     try{if(!DEMO){await API.syncCatalog([catalogRow(b.dataset.emit)]).catch(()=>{});}const c=await API.emitCert(b.dataset.emit);S.certs.push(c);toast('<b>¡Felicitaciones!</b> Obtuviste tu certificado.','ok');go('#/certificado/'+c.code);}
     catch(e){const er=$('#c-err');er.textContent=errMsg(e);er.hidden=false;b.disabled=false;b.textContent='Obtener certificado';}}));
 }
-const catalogRow=sid=>({id:sid,nombre:CIMA.subject(sid).nombre,topics:CIMA.topics(sid).map(t=>t.id),updated_at:new Date().toISOString()});
+const catalogRow=sid=>({id:sid,nombre:CIMA.subject(sid).nombre,topics:CIMA.reqTopics(sid).map(t=>t.id),updated_at:new Date().toISOString()});
 async function viewCert(main,code){
   let c=S.certs.find(x=>x.code===code);if(!c&&code){try{c=await API.verify(code);}catch(_){}}
   if(!c){main.append(el(`<div class="view"><div class="panel"><h1>Certificado no encontrado</h1><p>Revisa el código o <a href="#/verificar">verifícalo aquí</a>.</p></div></div>`));return;}
@@ -347,12 +348,18 @@ async function viewCert(main,code){
     <p class="cert-name">${esc(c.nombre)}</p>
     <p class="cert-s">por aprobar todos los temas de práctica de</p>
     <p class="cert-subj">${esc(c.materia)}</p>
-    <p class="cert-s">${c.temas} temas aprobados con un promedio de <b>${fmt(+c.promedio,2)} / 10</b> · ${fmtDate(c.issued_at)}</p>
+    <p class="cert-s">${c.temas} temas aprobados · calificación final <b>${fmt(+c.promedio,2)} / 10</b> · ${fmtDate(c.issued_at)}${c.version?` · CIMA ${esc(verTxt(c.version))}`:''}</p>
     <div class="cert-foot"><div class="sign"><span class="line"></span><b>${esc(CFG.docenteNombre)}</b><span>Docente · carrera de ${esc(CFG.carrera)}</span></div>
     <div class="code"><span>Código de verificación</span><b>${esc(c.code)}</b><span>${esc(url)}</span></div></div>
-   </div></article></div>`));
+   </div></article>${certDetailHtml(c)}</div>`));
   $('#pr').onclick=()=>window.print();
 }
+function certDetailHtml(c){if(!c.detalle||!c.detalle.length)return'';const sid=c.subject_id;
+  const nm=tid=>{const t=sid?CIMA.topic(sid,tid):null;return t?`${t.n} ${t.title}`:tid;};
+  return`<section class="cert-det-page"><div class="cert-det-head"><div><p class="cert-k">Detalle de calificaciones · ${esc(c.code)}</p><h2>${esc(c.nombre)} · ${esc(c.materia)}</h2></div>${ICON(40)}</div>
+   <table class="tbl cert-dt"><thead><tr><th>Tema</th><th>Nota del primer intento</th><th>Mejor nota</th><th>Intentos</th></tr></thead><tbody>${c.detalle.map(d=>`<tr><td>${esc(nm(d.topic))}</td><td>${d.primera!=null?fmt(+d.primera,1):'—'}</td><td><b>${d.mejor!=null?fmt(+d.mejor,1):'—'}</b></td><td>${d.intentos??0}</td></tr>`).join('')}</tbody>
+   <tfoot><tr><td>Promedios · <b>la calificación final es el promedio de las mejores notas</b></td><td>${c.promedio_primer!=null?fmt(+c.promedio_primer,2):'—'}</td><td><b>${fmt(+c.promedio,2)}</b></td><td>${c.detalle.reduce((a,d)=>a+(d.intentos||0),0)}</td></tr></tfoot></table>
+   <p class="note">Las notas son sobre 10. Se aprueba un tema con ${APROB} o más. La columna del primer intento muestra el resultado antes de practicar más; la mejor nota cuenta para la calificación final. ${c.version?`Emitido con CIMA ${esc(verTxt(c.version))}.`:''}</p></section>`;}
 function viewPerfil(main){
   const p=S.profile||{};
   main.append(el(`<div class="view"><header class="head"><p class="eyebrow">Mi perfil</p><h1>${esc(p.nombre)}</h1><p class="lead">${esc(p.email)} · carrera de ${esc(p.carrera||CFG.carrera)}</p></header>
@@ -362,14 +369,74 @@ function viewPerfil(main){
     try{await API.updateProfile(S.user.id,patch);Object.assign(S.profile,patch);m.textContent='Cambios guardados.';}catch(x){m.textContent=errMsg(x);}m.hidden=false;renderTop();});
 }
 
+
+/* ---------------- Buzón de sugerencias ---------------- */
+const SUGT={error:'Error en un tema o pregunta',tema:'Tema nuevo que te gustaría',simulador:'Mejora para un simulador',idea:'Otra idea'};
+const SUGE={nueva:'Enviada',revision:'En revisión',implementada:'Implementada',descartada:'No se implementará'};
+/* Reduce la captura a JPEG (máx. 1600 px) para no gastar espacio */
+function compressImage(file){return new Promise((res,rej)=>{if(!file||!/^image\//.test(file.type))return rej(new Error('El archivo debe ser una imagen.'));
+  const img=new Image(),u=URL.createObjectURL(file);img.onload=()=>{const k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+    const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>b?res(b):rej(new Error('No se pudo leer la imagen.')),'image/jpeg',0.82);};
+  img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('No se pudo leer la imagen.'));};img.src=u;});}
+function openSuggest(sid,tid){if(!S.user){go('#/ingresar');return;}
+  const old=document.getElementById('sg-ov');if(old)old.remove();const t=sid&&tid?CIMA.topic(sid,tid):null,sub=sid?CIMA.subject(sid):null;let blob=null;
+  const ov=el(`<div class="modal-ov" id="sg-ov" role="dialog" aria-modal="true" aria-labelledby="sg-h"><form class="modal panel" novalidate>
+    <h2 id="sg-h">Reportar un error o sugerir</h2>${t?`<p class="note">Tema: <b>${esc(t.n)} ${esc(t.title)}</b> · ${esc(sub.nombre)}</p>`:''}
+    <label class="ctrl"><span>¿Qué quieres enviar?</span><select id="sg-t">${Object.entries(SUGT).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+    <label class="ctrl"><span>Cuéntanos (qué hiciste, qué esperabas y qué pasó)</span><textarea class="inp" id="sg-m" rows="4" maxlength="2000" placeholder="Ej.: En la pregunta 3 escribí 2,45 y me la marcó mal; el resultado decía 2,46."></textarea></label>
+    <div class="sg-file"><label class="btn btn-ghost btn-sm" for="sg-f">Adjuntar captura de pantalla</label><input type="file" id="sg-f" accept="image/*" hidden><span class="note" id="sg-fn">Opcional, pero ayuda mucho. En computadora también puedes pegarla con Ctrl + V.</span></div>
+    <img id="sg-prev" alt="Vista previa de la captura" hidden>
+    <p class="note">Tu sugerencia llega a tu docente con tu nombre. Verás la respuesta en <b>Buzón</b>.</p><p class="err" id="sg-err" hidden></p>
+    <div class="btn-row"><button class="btn" id="sg-go">Enviar</button><button type="button" class="btn btn-ghost" id="sg-x">Cancelar</button></div></form></div>`);
+  document.body.append(ov);document.body.classList.add('modal-open');
+  const close=()=>{ov.remove();document.body.classList.remove('modal-open');removeEventListener('paste',onPaste);};
+  const setImg=async file=>{const fn=$('#sg-fn');try{fn.textContent='Procesando imagen…';blob=await compressImage(file);const p=$('#sg-prev');p.src=URL.createObjectURL(blob);p.hidden=false;fn.textContent=`Captura lista (${Math.round(blob.size/1024)} KB).`;}catch(e){blob=null;fn.textContent=e.message;}};
+  const onPaste=e=>{const it=[...(e.clipboardData?.items||[])].find(i=>i.type.startsWith('image/'));if(it){e.preventDefault();setImg(it.getAsFile());}};addEventListener('paste',onPaste);
+  $('#sg-f').onchange=e=>{if(e.target.files[0])setImg(e.target.files[0]);};
+  $('#sg-x').onclick=close;ov.addEventListener('click',e=>{if(e.target===ov)close();});
+  ov.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const m=$('#sg-m').value.trim(),er=$('#sg-err');
+    if(m.length<5){er.textContent='Escribe al menos una frase para que podamos entenderte.';er.hidden=false;return;}
+    const b=$('#sg-go');b.disabled=true;b.textContent='Enviando…';er.hidden=true;
+    try{const row={tipo:$('#sg-t').value,subject_id:sid||null,topic_id:tid||null,mensaje:m,contexto:{version:CFG.version,ruta:location.hash,pantalla:`${innerWidth}x${innerHeight}`,navegador:navigator.userAgent.slice(0,160)}};
+      const r=await API.addSuggestion(row,blob);S.sug.unshift(r);close();toast('<b>¡Gracias!</b> Tu sugerencia llegó a tu docente. Revisa su respuesta en Buzón.','ok');renderTop();}
+    catch(x){er.textContent=/sugerencias|schema cache|does not exist|bucket/i.test(String(x.message))?'El buzón aún no está activo. Avísale a tu docente.':errMsg(x);er.hidden=false;b.disabled=false;b.textContent='Enviar';}});
+  setTimeout(()=>$('#sg-m').focus(),50);}
+async function viewBuzon(main){
+  try{S.sug=await API.mySuggestions(S.user.id)||[];}catch(_){}
+  const list=S.sug;
+  main.append(el(`<div class="view"><header class="head"><p class="eyebrow">Buzón</p><h1>Tus sugerencias y reportes</h1><p class="lead">Si algo no funciona o tienes una idea para CIMA, envíala desde el tema donde estás (botón <b>Reportar un error o sugerir</b>) o desde aquí. Tu docente las revisa y te responde.</p>
+    <div class="btn-row"><button type="button" class="btn" id="bz-new">Nueva sugerencia</button></div></header>
+   <section class="panel">${list.length?`<div class="sug-list">${list.map(r=>{const t=r.topic_id?CIMA.topic(r.subject_id,r.topic_id):null;
+     return`<article class="sug st-${r.estado}${r.visto?'':' unseen'}"><header><span class="chip ${r.estado==='implementada'?'ok':r.estado==='revision'?'mid':''}">${SUGE[r.estado]||r.estado}</span><b>${esc(SUGT[r.tipo]||r.tipo)}</b><span class="note">${new Date(r.created_at).toLocaleString('es-EC')}${t?` · ${esc(t.n)} ${esc(t.short)}`:''}</span></header>
+      <p class="sug-msg">${esc(r.mensaje)}</p>${r.imagen?'<p class="note">Con captura de pantalla adjunta.</p>':''}
+      ${r.respuesta?`<div class="sug-reply"><b>Respuesta de tu docente:</b> ${esc(r.respuesta)}</div>`:''}</article>`;}).join('')}</div>`:'<p class="note">Aún no has enviado sugerencias.</p>'}</section>${footer()}</div>`));
+  $('#bz-new').onclick=()=>openSuggest(null,null);
+  if(list.some(r=>!r.visto)){try{await API.markSuggestionsSeen();}catch(_){}list.forEach(r=>r.visto=true);renderTop('buzon');}
+}
+
+/* ---------------- App instalable (PWA) ---------------- */
+let INSTALL=null;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();INSTALL=e;const c=document.getElementById('inst-card');if(c)c.outerHTML=installCard();bindInstall();});
+addEventListener('appinstalled',()=>{INSTALL=null;const c=document.getElementById('inst-card');if(c)c.remove();toast('<b>CIMA quedó instalada.</b> Búscala con su ícono en tu pantalla de inicio.','ok');});
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function installCard(){if(isStandalone())return'';let hide=false;try{hide=localStorage.getItem('cima-inst-x')==='1';}catch(_){}if(hide)return'';
+  if(INSTALL)return`<section class="panel inst" id="inst-card"><div><b>Instala CIMA como app</b><p class="note">Queda con su ícono en tu celular o computadora y se abre a pantalla completa.</p></div><div class="btn-row"><button type="button" class="btn" data-inst>Instalar</button><button type="button" class="btn btn-ghost btn-sm" data-instx>Ahora no</button></div></section>`;
+  if(isIOS())return`<section class="panel inst" id="inst-card"><div><b>Instala CIMA en tu iPhone</b><p class="note">En Safari toca <b>Compartir</b> (el cuadro con la flecha) y luego <b>Agregar a inicio</b>.</p></div><div class="btn-row"><button type="button" class="btn btn-ghost btn-sm" data-instx>Entendido</button></div></section>`;
+  return'<div id="inst-card" hidden></div>';}
+function bindInstall(){document.querySelectorAll('[data-inst]').forEach(b=>b.onclick=async()=>{if(!INSTALL)return;INSTALL.prompt();try{await INSTALL.userChoice;}catch(_){}INSTALL=null;const c=document.getElementById('inst-card');if(c)c.remove();});
+  document.querySelectorAll('[data-instx]').forEach(b=>b.onclick=()=>{try{localStorage.setItem('cima-inst-x','1');}catch(_){}const c=document.getElementById('inst-card');if(c)c.remove();});}
+if('serviceWorker' in navigator&&location.protocol!=='file:'){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+
 /* ---------------- Arranque ---------------- */
 async function afterLogin(){
   S.user=await API.currentUser();if(!S.user)return;
   try{S.profile=await API.profile(S.user.id);}catch(_){S.profile={id:S.user.id,email:S.user.email,nombre:'',rol:'estudiante'};}
-  if(S.profile?.rol!=='docente'){
-    const [a,s,c]=await Promise.all([API.mine('attempts',S.user.id),API.mine('sessions',S.user.id),API.mine('certificates',S.user.id)]);
-    S.attempts=a;S.sessions=s;S.certs=c;await retryPending();startTracking();T.subject=undefined;
-  }
+  const [a,s,c]=await Promise.all([API.mine('attempts',S.user.id),API.mine('sessions',S.user.id),API.mine('certificates',S.user.id)]);
+  S.attempts=a;S.sessions=s;S.certs=c;await retryPending();
+  try{S.sug=await API.mySuggestions(S.user.id)||[];}catch(_){S.sug=[];}
+  if(S.profile?.rol!=='docente'){startTracking();T.subject=undefined;}
+  const nv=S.sug.filter(r=>!r.visto);if(nv.length)setTimeout(()=>toast(`<span><b>Tu docente respondió ${nv.length===1?'una sugerencia tuya':nv.length+' sugerencias tuyas'}.</b> <a href="#/buzon">Ver en el buzón</a></span>`,'ok'),800);
 }
 async function boot(){
   try{await afterLogin();}catch(e){console.error(e);}
