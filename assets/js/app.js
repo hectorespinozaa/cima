@@ -37,7 +37,7 @@ function streaks(days){
   sorted.forEach(k=>{const d=new Date(k+'T12:00:00');run=prev&&(d-prev)/864e5<1.5?run+1:1;best=Math.max(best,run);prev=d;});
   return{cur,best};
 }
-function subjectProgress(sid,attempts){const b=bestMap(attempts),ts=CIMA.reqTopics(sid),ok=ts.filter(t=>(b[sid+'/'+t.id]??0)>=APROB).length;return{ok,total:ts.length,pct:ts.length?ok/ts.length:0};}
+function subjectProgress(sid,attempts){const b=bestMap(attempts),req=CIMA.reqTopics(sid),ref=!req.length,ts=ref?CIMA.topics(sid):req,ok=ts.filter(t=>(b[sid+'/'+t.id]??0)>=APROB).length;return{ok,total:ts.length,pct:ts.length?ok/ts.length:0,ref};}
 const BADGES=[
  {id:'primer-paso',n:'Primer paso',d:'Termina tu primera prueba.',ic:'flag',f:c=>c.att.length>=1},
  {id:'primera-cumbre',n:'Primera cumbre',d:'Aprueba tu primer tema (nota 7 o más).',ic:'peak',f:c=>c.approved>=1},
@@ -129,6 +129,7 @@ function runQuiz(mod,box){
     const best=Math.max(nota,prevBest??0);
     t.innerHTML=`<strong>Nota: ${fmt(nota,1)} / 10.</strong> ${prevBest!==undefined&&nota>prevBest?'Nueva mejor nota. ':''}${nota>=APROB?(prevBest===undefined||prevBest<APROB?'<b>¡Tema aprobado!</b> ':''):`Necesitas ${APROB} para aprobar. `}Mejor nota: ${fmt(best,1)}${saved?'':' · <span class="warn">No se pudo guardar ahora; se reintentará automáticamente.</span>'}`;
     score.classList.add('is-final');
+    if(nota<APROB&&window.REPASO){const h=REPASO.html(k,'*');if(h)t.insertAdjacentHTML('beforeend',h);}
     if(nota>=APROB&&(prevBest??0)<APROB)toast(`<b>¡Tema aprobado!</b> ${esc(mod.short)}`,'ok');
     const lvAfter=levelOf(xpOf(S.attempts)).i;if(lvAfter>lvBefore){const l=LEVELS[lvAfter];toast(`<span><b>¡Llegaste al ${esc(l.n)}${l.alt?` (${l.alt})`:''}!</b> ${esc(l.d)}</span>`,'level');}
     const after=earned(S.attempts,S.sessions,S.certs);BADGES.filter(b=>after.has(b.id)&&!before.has(b.id)).forEach(b=>toast(`${badgeSvg(b.ic,true)}<span><b>Nueva insignia:</b> ${b.n}</span>`,'badge'));
@@ -264,7 +265,7 @@ function viewHome(main){
   const eb=earned(S.attempts,S.sessions,S.certs);
   main.append(el(`<div class="view"><header class="head"><p class="eyebrow">Hola, ${esc((S.profile?.nombre||'').split(' ')[0])}</p><h1>Tu ascenso</h1></header>
    ${levelCard()}${cont}${installCard()}
-   <section class="grid-sec"><h2>Materias</h2><div class="cards subj">${subs.map(s=>{const p=subjectProgress(s.id,S.attempts);return`<a class="card" href="#/materia/${s.id}"><span class="card-top"><span class="num">${esc(s.nivel)}</span><span class="chip ${p.ok===p.total&&p.total?'ok':p.ok?'mid':''}">${p.ok}/${p.total}</span></span><span class="card-title">${esc(s.nombre)}</span><span class="card-desc">${esc(s.descripcion)}</span><span class="pbar"><span style="width:${Math.round(p.pct*100)}%"></span></span></a>`;}).join('')}</div></section>
+   <section class="grid-sec"><h2>Materias</h2><div class="cards subj">${subs.map(s=>{const p=subjectProgress(s.id,S.attempts);return`<a class="card" href="#/materia/${s.id}"><span class="card-top"><span class="num">${esc(s.nivel)}</span><span class="chip ${p.ok===p.total&&p.total?'ok':p.ok?'mid':''}">${p.ref?'refuerzo · ':''}${p.ok}/${p.total}</span></span><span class="card-title">${esc(s.nombre)}</span><span class="card-desc">${esc(s.descripcion)}</span><span class="pbar"><span style="width:${Math.round(p.pct*100)}%"></span></span></a>`;}).join('')}</div></section>
    <section class="grid-sec"><div class="sec-row"><h2>Insignias</h2><a href="#/logros">Ver todas →</a></div><div class="badges mini">${BADGES.filter(x=>eb.has(x.id)).slice(-6).map(x=>`<div class="bdg on">${badgeSvg(x.ic,true)}<b>${x.n}</b></div>`).join('')||'<p class="note">Aún no tienes insignias. Termina tu primera prueba para ganar “Primer paso”.</p>'}</div></section>
    ${footer()}</div>`));
 }
@@ -272,7 +273,7 @@ function viewSubject(main,sid){
   const s=CIMA.subject(sid);if(!s)return viewNotFound(main);
   const b=bestMap(S.attempts),c=countMap(S.attempts),p=subjectProgress(sid,S.attempts),cert=S.certs.find(x=>x.subject_id===sid);
   main.append(el(`<div class="view"><header class="head"><p class="eyebrow"><a href="#/">Inicio</a> / ${esc(s.nivel)}</p><h1>${esc(s.nombre)}</h1><p class="lead">${esc(s.descripcion)}</p>
-   <div class="pbar big"><span style="width:${Math.round(p.pct*100)}%"></span></div><p class="note">${p.ok} de ${p.total} temas aprobados ${cert?`· <a href="#/certificado/${cert.code}">Ver tu certificado</a>`:p.ok===p.total&&p.total?'· <a href="#/certificados"><b>¡Ya puedes obtener tu certificado!</b></a>':''}</p></header>
+   <div class="pbar big"><span style="width:${Math.round(p.pct*100)}%"></span></div><p class="note">${p.ok} de ${p.total} temas aprobados ${p.ref?'· Son temas de refuerzo: practícalos cuando CIMA te los sugiera o cuando los necesites. No tienen certificado.':cert?`· <a href="#/certificado/${cert.code}">Ver tu certificado</a>`:p.ok===p.total&&p.total?'· <a href="#/certificados"><b>¡Ya puedes obtener tu certificado!</b></a>':''}</p></header>
    ${s.units.map(u=>`<section class="panel unit"><div class="sec-head"><h2>${esc(u.nombre)}</h2></div><ol class="topics">${u.topics.map(t=>{const k=sid+'/'+t.id,bb=b[k],n=c[k]||0,stt=bb===undefined?'nuevo':bb>=APROB?'aprobado':'en progreso';
      return`<li><a class="topic-row" href="#/tema/${sid}/${t.id}"><span class="num">${esc(t.n)}</span><span class="t-main"><b>${esc(t.title)}${t.refuerzo?' <span class="chip ref">refuerzo</span>':''}</b><span class="note">${esc(t.desc||'')}</span></span><span class="t-stat"><span class="chip ${stt==='aprobado'?'ok':stt==='en progreso'?'mid':''}">${stt}</span><span class="note">${bb!==undefined?`mejor ${fmt(bb,1)} · ${n} intento${n===1?'':'s'}`:'sin intentos'}</span></span></a></li>`;}).join('')}</ol></section>`).join('')}
    ${footer()}</div>`));
@@ -281,7 +282,7 @@ function viewTopic(main,sid,tid){
   const s=CIMA.subject(sid),m=CIMA.topic(sid,tid);if(!s||!m)return viewNotFound(main);
   const all=CIMA.topics(sid),i=all.indexOf(m),prev=all[i-1],next=all[i+1],unit=s.units.find(u=>u.id===m.unit);
   const v=el(`<article class="view">
-    <header class="head"><p class="eyebrow"><a href="#/materia/${sid}">${esc(s.nombre)}</a> / ${esc(unit?unit.nombre:'')}</p><h1><span class="tnum">${esc(m.n)}</span> ${esc(m.title)}</h1><p class="lead">${m.lead}</p></header>
+    <header class="head"><p class="eyebrow"><a href="#/materia/${sid}">${esc(s.nombre)}</a> / ${esc(unit?unit.nombre:'')}</p><h1><span class="tnum">${esc(m.n)}</span> ${esc(m.title)}</h1><p class="lead">${m.lead}</p>${(()=>{const pv=window.REPASO?REPASO.previos(sid+'/'+tid):[];return pv.length?`<p class="note previos">Conviene dominar antes: ${pv.map(k=>`<a href="#/tema/${k}">${esc(REPASO.label(k))}</a>`).join(' · ')}</p>`:'';})()}</header>
     <div class="topic-tools no-print"><button type="button" class="btn btn-ghost btn-sm" id="sug">Reportar un error o sugerir</button><button type="button" class="btn btn-ghost btn-sm" id="proj">Modo proyector</button>${S.profile?.rol==='docente'?'<button type="button" class="btn btn-ghost btn-sm" id="ws">Hoja de ejercicios para imprimir</button>':''}</div>
     <section class="idea" aria-labelledby="idea-h"><h2 id="idea-h">Idea clave</h2>${m.idea}</section>
     <section class="panel" aria-labelledby="sim-h"><div class="sec-head"><h2 id="sim-h">Simulador</h2><p>${m.simHint}</p></div><div class="sim-body"></div></section>
@@ -324,7 +325,7 @@ function viewLogros(main){
    <section class="panel"><div class="sec-head"><h2>Constancia</h2><p>Racha actual: <b>${sk.cur}</b> día${sk.cur===1?'':'s'} · mejor racha: <b>${sk.best}</b> · días con práctica: <b>${days.size}</b></p></div>${heatmap(days)}</section>${footer()}</div>`));
 }
 function viewCerts(main){
-  const subs=[...CIMA.subjects].sort((a,b)=>a.orden-b.orden);
+  const subs=[...CIMA.subjects].filter(s=>CIMA.reqTopics(s.id).length).sort((a,b)=>a.orden-b.orden);
   main.append(el(`<div class="view"><header class="head"><p class="eyebrow">Certificados</p><h1>Tus certificados</h1><p class="lead">Obtienes el certificado de una materia cuando apruebas <b>todos</b> sus temas con ${APROB} o más. Cada certificado tiene un código que cualquiera puede verificar.</p></header>
    <div class="cards">${subs.map(s=>{const p=subjectProgress(s.id,S.attempts),c=S.certs.find(x=>x.subject_id===s.id);
      return`<div class="card static cert-card"><span class="card-top"><span class="num">${esc(s.nivel)}</span><span class="chip ${c?'ok':p.ok===p.total?'mid':''}">${c?'obtenido':`${p.ok}/${p.total}`}</span></span><span class="card-title">${esc(s.nombre)}</span><span class="pbar"><span style="width:${Math.round(p.pct*100)}%"></span></span>

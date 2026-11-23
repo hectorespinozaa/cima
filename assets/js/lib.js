@@ -144,6 +144,7 @@ window.CIMA={subjects:[],
     let s=this.subjects.find(x=>x.id===meta.id);
     if(!s){s=Object.assign({units:[]},meta);this.subjects.push(s);}
     unit.topics.forEach(t=>{t.short=t.short||t.title;t.subject=s.id;t.unit=unit.id;});
+    const ex=s.units.find(u=>u.id===unit.id);if(ex){ex.topics.push(...unit.topics);return;}   // un archivo puede sumar temas a una unidad que ya existe
     s.units.push(unit);s.units.sort((a,b)=>(a.orden||0)-(b.orden||0));
   },
   topics(sid){const s=this.subjects.find(x=>x.id===sid);return s?s.units.flatMap(u=>u.topics):[];},

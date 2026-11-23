@@ -182,3 +182,5 @@ grant execute on function public.verificar_certificado(text) to anon, authentica
 --   update auth.users set encrypted_password = crypt('NuevaClave123', gen_salt('bf'))
 --   where email = 'correo.del.estudiante@ejemplo.com';
 -- =====================================================================
+
+-- Instalación nueva: después de este archivo ejecuta también supabase/v1.1.2.sql
