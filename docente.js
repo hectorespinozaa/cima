@@ -2,10 +2,10 @@
 /* =====================================================================
    CIMA · Dashboard docente
    Pestañas: Resumen · Ranking · Estudiante · Materias · Tiempo vs logro ·
-   Alertas · Preguntas difíciles · Certificados · Buzón · Exportar
+   Alertas · Preguntas difíciles · Repasos · Certificados · Buzón · Exportar
    ===================================================================== */
 const D={raw:null,f:{subject:'*',paralelo:'*',days:30},tab:'resumen',sort:{k:'visits',dir:-1},student:null};
-const TABS=[['resumen','Resumen'],['ranking','Ranking'],['estudiante','Estudiante'],['materias','Materias'],['tiempo','Tiempo vs logro'],['alertas','Alertas'],['preguntas','Preguntas difíciles'],['certificados','Certificados'],['buzon','Buzón'],['exportar','Exportar']];
+const TABS=[['resumen','Resumen'],['ranking','Ranking'],['estudiante','Estudiante'],['materias','Materias'],['tiempo','Tiempo vs logro'],['alertas','Alertas'],['preguntas','Preguntas difíciles'],['repasos','Repasos'],['certificados','Certificados'],['buzon','Buzón'],['exportar','Exportar']];
 const SUBCLS=['s0','s1','s2','s3','s4'];
 const subjIdx=sid=>Math.max(0,CIMA.subjects.findIndex(s=>s.id===sid));
 const weekStart=t=>{const d=new Date(t);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return+d;};
@@ -18,7 +18,8 @@ async function viewDocente(main){
     const rows=CIMA.subjects.map(s=>catalogRow(s.id));await API.syncCatalog(rows).catch(()=>{});
     const [profiles,sessions,attempts,certificates]=await Promise.all(['profiles','sessions','attempts','certificates'].map(t=>API.all(t)));
     let sug=null;try{sug=await API.allSuggestions();}catch(_){sug=null;}
-    D.raw={profiles,sessions,attempts,certificates,sug};
+    let rep=null;try{rep=await API.allRepasos();}catch(_){rep=null;}
+    D.raw={profiles,sessions,attempts,certificates,sug,rep};
   }catch(e){$('#d-sub').textContent=errMsg(e);return;}
   renderDash();
 }
@@ -29,7 +30,7 @@ function buildData(){
   const attAll=R.attempts.filter(a=>ids.has(a.user_id)&&inSub(a));
   const att=attAll.filter(a=>+new Date(a.created_at)>=since);
   const ses=R.sessions.filter(s=>ids.has(s.user_id)&&inSub(s)&&+new Date(s.started_at)>=since);
-  const universe=f.subject==='*'?CIMA.subjects.flatMap(s=>CIMA.topics(s.id).map(t=>s.id+'/'+t.id)):CIMA.topics(f.subject).map(t=>f.subject+'/'+t.id);
+  const uni=sid=>(CIMA.reqTopics(sid).length?CIMA.reqTopics(sid):CIMA.topics(sid)).map(t=>sid+'/'+t.id),universe=f.subject==='*'?CIMA.subjects.filter(s=>CIMA.reqTopics(s.id).length).flatMap(s=>uni(s.id)):uni(f.subject);
   const by=(arr,k)=>{const m=new Map();arr.forEach(r=>{const v=r[k];if(!m.has(v))m.set(v,[]);m.get(v).push(r);});return m;};
   const A=by(att,'user_id'),AA=by(attAll,'user_id'),SS=by(ses,'user_id'),SA=by(R.sessions.filter(s=>ids.has(s.user_id)),'user_id'),AT=by(R.attempts.filter(a=>ids.has(a.user_id)),'user_id');
   const certs=R.certificates.filter(c=>ids.has(c.user_id)&&inSub(c));
@@ -60,7 +61,7 @@ function renderDash(){
   B.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{D.tab=b.dataset.tab;renderDash();});
   [['f-s','subject'],['f-p','paralelo'],['f-d','days']].forEach(([id,k])=>$('#'+id).onchange=e=>{D.f[k]=k==='days'?+e.target.value:e.target.value;renderDash();});
   const T=$('#d-tab');REDRAW=()=>renderDash();
-  ({resumen:tabResumen,ranking:tabRanking,estudiante:tabEstudiante,materias:tabMaterias,tiempo:tabTiempo,alertas:tabAlertas,preguntas:tabPreguntas,certificados:tabCertificados,buzon:tabBuzon,exportar:tabExportar}[D.tab])(T,X);
+  ({resumen:tabResumen,ranking:tabRanking,estudiante:tabEstudiante,materias:tabMaterias,tiempo:tabTiempo,alertas:tabAlertas,preguntas:tabPreguntas,repasos:tabRepasos,certificados:tabCertificados,buzon:tabBuzon,exportar:tabExportar}[D.tab])(T,X);
 }
 const kpi=(t,v,s='',hl)=>`<div class="ro${hl?' hl':''}"><span>${t}</span><b>${v}</b>${s?`<span>${s}</span>`:''}</div>`;
 const legend=items=>`<div class="legend">${items.map(([c,t])=>`<span><i class="lg ${c}"></i>${esc(t)}</span>`).join('')}</div>`;
@@ -180,6 +181,22 @@ function tabPreguntas(T,X){
   T.innerHTML=`<section class="panel"><div class="sec-head"><h2>Preguntas que más se fallan</h2><p>Por posición de pregunta dentro de cada tema (los datos cambian en cada intento, pero el tipo de pregunta es el mismo). Solo preguntas con 5 o más respuestas en el período.</p></div>
    ${list.length?`<div class="table-wrap"><table class="tbl qtab"><thead><tr><th>Tema</th><th>Pregunta</th><th>Ejemplo</th><th>Respuestas</th><th>% de error</th></tr></thead><tbody>${list.map(g=>{const t=CIMA.topic(g.sid,g.tid);return`<tr><td>${esc(CIMA.subject(g.sid).nombre.split(' ')[0])} ${esc(t.n)} ${esc(t.short)}</td><td>${g.i+1}</td><td class="qex">${esc(g.q)}</td><td>${g.n}</td><td class="${g.rate>=0.5?'bad':''}"><span class="mini-bar"><span style="width:${Math.round(g.rate*100)}%"></span></span> ${fmt(g.rate*100,0)} %</td></tr>`;}).join('')}</tbody></table></div><p class="note">Una tasa de error alta en la misma pregunta de un tema suele indicar un concepto para reforzar en clase.</p>`:'<p class="note">Aún no hay suficientes respuestas en el período.</p>'}</section>`;
 }
+function tabRepasos(T,X){
+  if(D.raw.rep===null){T.innerHTML='<section class="panel"><h2>Sugerencias de repaso</h2><p class="note">Falta ejecutar el script <b>v1.3</b> en Supabase para registrar las sugerencias de repaso.</p></section>';return;}
+  const ids=new Set(X.studs.map(s=>s.id)),since=X.since,f=D.f;
+  const rows=D.raw.rep.filter(r=>ids.has(r.user_id)&&+new Date(r.created_at)>=since&&(f.subject==='*'||r.origen.split('/')[0]===f.subject));
+  const name=k=>{const[s,t]=k.split('/'),tp=CIMA.topic(s,t),sb=CIMA.subject(s);return tp?`${sb.nombre.split(' ')[0]} ${tp.n} ${tp.short}`:k;};
+  const g={};rows.forEach(r=>{const k=r.origen+'|'+r.motivo+'|'+r.sugerido,x=g[k]=g[k]||{origen:r.origen,motivo:r.motivo,sugerido:r.sugerido,n:0,u:new Set(),o:new Set()};if(r.evento==='abierto')x.o.add(r.user_id);else{x.n++;x.u.add(r.user_id);}});
+  const list=Object.values(g).filter(x=>x.n).sort((a,b)=>b.u.size-a.u.size||b.n-a.n);
+  const bySug={};list.forEach(x=>{const y=bySug[x.sugerido]=bySug[x.sugerido]||{u:new Set(),o:new Set()};x.u.forEach(v=>y.u.add(v));x.o.forEach(v=>y.o.add(v));});
+  const top=Object.entries(bySug).sort((a,b)=>b[1].u.size-a[1].u.size).slice(0,6);
+  const nSug=list.reduce((a,x)=>a+x.n,0),nU=new Set(rows.filter(r=>r.evento!=='abierto').map(r=>r.user_id)).size,nO=new Set(rows.filter(r=>r.evento==='abierto').map(r=>r.user_id+r.sugerido)).size;
+  T.innerHTML=`<section class="panel"><div class="sec-head"><h2>Sugerencias de repaso</h2><p>Cada vez que un estudiante falla un paso (hipótesis, supuestos, cálculo, decisión, pronóstico) o no aprueba la prueba de un tema, CIMA le sugiere temas previos. Aquí ves cuáles se sugieren más y cuántos estudiantes los abrieron.</p></div>
+   <div class="readouts">${kpi('Sugerencias',nSug)}${kpi('Estudiantes que recibieron alguna',nU)}${kpi('Veces que abrieron el tema sugerido',nO)}</div>
+   ${top.length?`<h3 class="sub">Temas que más se necesitan repasar</h3><div class="table-wrap"><table class="tbl"><thead><tr><th>Tema sugerido</th><th>Estudiantes</th><th>Lo abrieron</th></tr></thead><tbody>${top.map(([k,y])=>`<tr><td><a href="#/tema/${k}">${esc(name(k))}</a></td><td>${y.u.size}</td><td>${y.o.size} (${fmt(y.u.size?y.o.size/y.u.size*100:0,0)} %)</td></tr>`).join('')}</tbody></table></div>
+   <h3 class="sub">Detalle: dónde fallaron y qué se sugirió</h3><div class="table-wrap"><table class="tbl"><thead><tr><th>Dónde falló</th><th>Paso</th><th>Se sugirió</th><th>Veces</th><th>Estudiantes</th><th>Lo abrieron</th></tr></thead><tbody>${list.slice(0,60).map(x=>`<tr><td>${esc(name(x.origen))}</td><td>${esc(REPASO.MOTIVO[x.motivo]||x.motivo)}</td><td>${esc(name(x.sugerido))}</td><td>${x.n}</td><td>${x.u.size}</td><td>${x.o.size}</td></tr>`).join('')}</tbody></table></div>
+   <div class="btn-row"><button type="button" class="btn btn-ghost" id="rp-x">Exportar (Excel)</button></div>`:'<p class="note">Todavía no hay sugerencias registradas con estos filtros.</p>'}</section>`;
+  const b=$('#rp-x');if(b)b.onclick=()=>download(`cima-repasos-${new Date().toISOString().slice(0,10)}.csv`,csv([['Dónde falló','Paso','Se sugirió','Veces','Estudiantes','Lo abrieron'],...list.map(x=>[name(x.origen),REPASO.MOTIVO[x.motivo]||x.motivo,name(x.sugerido),x.n,x.u.size,x.o.size])]));}
 function csv(rows){const q=v=>{v=v==null?'':String(v);return/[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};return'﻿'+rows.map(r=>r.map(q).join(';')).join('\r\n');}
 function download(name,text){const b=new Blob([text],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 function tabExportar(T,X){

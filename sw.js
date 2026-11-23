@@ -1,7 +1,7 @@
 /* CIMA · Service worker
    Estrategia "primero la red": con internet siempre se carga la versión publicada;
    la copia guardada solo se usa si no hay conexión. No toca la base de datos. */
-const CACHE='cima-v1.2';
+const CACHE='cima-v1.3';
 self.addEventListener('install',e=>{self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{

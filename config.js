@@ -10,7 +10,7 @@ window.CIMA_CONFIG = {
   supabaseUrl: 'https://kxowpfkmimtwusbpsvov.supabase.co',
   supabaseKey: 'sb_publishable_-GOaNVGfDbtri33OVe4xLg_jf0jUsuU',
 
-  version: '1.1.2',
+  version: '1.3',
   docenteNombre: 'Ing. Héctor Espinoza',
   carrera: 'Alimentos',
   institucion: 'ULEAM',
@@ -19,6 +19,21 @@ window.CIMA_CONFIG = {
   proximamente: [],
 
   novedades: [
+    { v: '1.3', fecha: 'noviembre de 2026', items: [
+      'Sugerencias de repaso: si fallas un paso (hipótesis, supuestos, cálculo, decisión) o no apruebas un tema, CIMA te recomienda qué tema previo repasar.',
+      'Cada tema muestra qué conviene dominar antes.',
+      'Nueva sección Nivelación: la sumatoria, despejar una variable, porcentajes y redondeo, y del enunciado a la ecuación.',
+      'Estadística 3.5: ¿Qué prueba uso?, con el análisis previo de normalidad y varianzas, la matriz de pruebas paramétricas y no paramétricas y rutas en JASP y Excel.',
+      'Diseño Experimental: paso de pronóstico con la ecuación del modelo en los factoriales 2², 2³ y a × b.'
+    ]},
+    { v: '1.2', fecha: 'noviembre de 2026', items: [
+      'Diseño Experimental se organiza en las 4 unidades del sílabo y pasa de 7 a 12 temas.',
+      'Temas nuevos: DCA desbalanceado con Tukey-Kramer, cuadro latino, cuadro grecolatino, bloques incompletos balanceados (tratamientos y bloques ajustados, con sus gráficas de medias) y factorial general a × b.',
+      'Cada tema nuevo trae su laboratorio de 6 pestañas con salida estilo SPSS, datos descargables y sintaxis.',
+      'El árbol “¿Qué diseño uso?” incluye los diseños nuevos.',
+      'Calidad · Ishikawa: si una causa queda en la M equivocada, la plataforma dice a qué M pertenece y por qué.',
+      'El certificado de Diseño Experimental ahora pide los 12 temas. Los certificados emitidos antes se mantienen.'
+    ]},
     { v: '1.1.2', fecha: 'noviembre de 2026', items: [
       'Buzón de sugerencias con capturas de pantalla, desde cada tema; el docente responde y el estudiante recibe el aviso.',
       'Certificado con el detalle de cada tema: nota del primer intento, mejor nota e intentos, más la versión de CIMA.',

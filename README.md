@@ -20,6 +20,10 @@ Desarrollada por **Ing. Héctor Espinoza**.
 | `assets/img/` | Logo, ícono y sello |
 | `supabase/schema.sql` | Base de datos: se ejecuta una sola vez en Supabase |
 | `supabase/v1.1.2.sql` | Actualización de la base de datos para la v1.1.2 (buzón, capturas, certificado con detalle, restablecer contraseñas). Se ejecuta después de `schema.sql` |
+| `supabase/v1.3.sql` | Actualización v1.3: tabla de sugerencias de repaso (Dashboard → Repasos) |
+| `assets/js/repaso.js` | Mapa de temas previos y sugerencias de repaso |
+| `materias/nivelacion.js` | Sección Nivelación (temas de refuerzo, sin certificado) |
+| `materias/estadistica-prueba.js` | Estadística 3.5 ¿Qué prueba uso? |
 | `manifest.webmanifest` y `sw.js` | Lo que permite instalar CIMA como app (PWA) |
 
 ## Agregar o cambiar contenido

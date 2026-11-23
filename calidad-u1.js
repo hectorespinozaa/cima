@@ -8,6 +8,8 @@ window.META_CAL={id:'calidad',nombre:'Gestión de la Calidad',orden:4,nivel:'Cal
 "use strict";
 const U=LABUI,META=META_CAL;
 const M6=[['mo','Mano de obra'],['met','Método'],['maq','Máquina'],['mat','Materiales'],['med','Medición'],['amb','Medio ambiente']];
+const M6N=Object.fromEntries(M6);
+const M6WHY={mo:'depende de la persona: su habilidad, capacitación o cuidado',met:'es la forma de hacer el trabajo: el procedimiento, los tiempos o el orden de los pasos',maq:'es el equipo que procesa el producto, no un instrumento para medir',mat:'es un insumo o la materia prima que entra al proceso',med:'tiene que ver con medir, controlar o registrar: instrumentos, calibración, muestreo o registros. Un termómetro o una balanza son Medición, no Máquina',amb:'es una condición del lugar: temperatura, humedad, aire, luz o vibraciones'};
 
 /* =============== 1.1 Ishikawa =============== */
 const ISH=[
@@ -26,7 +28,7 @@ function simIsh(box){
     D=dnd($('#is-d',box),{items,boxes:M6.map(([k,l])=>({id:k,label:l})),cls:'fish'});
     const head=document.createElement('div');head.className='fish-head';head.textContent=I.p;$('#is-d .dnd-boxes',box).appendChild(head);$('#is-fb',box).textContent='';whys();}
   $('#is-ok',box).addEventListener('click',()=>{const g=D.get(),ok={};let right=0,empty=0;Object.entries(g).forEach(([id,b])=>{if(!b){empty++;return;}ok[id]=id.split('-')[0]===b;if(ok[id])right++;});D.mark(ok);
-    const tot=Object.keys(g).length;$('#is-fb',box).innerHTML=empty?`Faltan ${empty} causas por ubicar.`:right===tot?'<strong>¡Excelente!</strong> Todas las causas están en su M. Ahora el equipo vota las más probables y las verifica con datos (hoja de verificación, Pareto).':`${right} de ${tot} bien ubicadas. Revisa las rojas: <b>Máquina</b> es el equipo; <b>Método</b>, cómo se hace; <b>Materiales</b>, insumos; <b>Medición</b>, instrumentos y registros; <b>Medio ambiente</b>, condiciones del lugar.`;});
+    const tot=Object.keys(g).length;$('#is-fb',box).innerHTML=empty?`Faltan ${empty} causas por ubicar.`:right===tot?'<strong>¡Excelente!</strong> Todas las causas están en su M. Ahora el equipo vota las más probables y las verifica con datos (hoja de verificación, Pareto).':`${right} de ${tot} bien ubicadas. Así quedan las que están en rojo:<ul class="ish-fix">${Object.entries(g).filter(([id,b])=>b&&!ok[id]).map(([id,b])=>{const k=id.split('-')[0],t=I.c[k][+id.split('-')[1]];return`<li>“${t}” no va en ${M6N[b]}: va en <b>${M6N[k]}</b>, porque ${M6WHY[k]}.</li>`;}).join('')}</ul>Muévelas a su M y vuelve a comprobar.`;});
   $('#is-new',box).addEventListener('click',load);
   const WH=[
    {s:'El yogur presenta suero en la superficie.',c:[['¿Por qué?','El gel se rompió durante el almacenamiento.',['El yogur es de sabor fresa.']],['¿Por qué se rompió?','Hubo variaciones de temperatura en la cámara.',['El envase es de plástico.']],['¿Por qué hubo variaciones?','La puerta de la cámara se queda abierta en los despachos.',['El yogur se vende bien.']],['¿Por qué se queda abierta?','No hay un procedimiento de despacho ni cortina de aire.',['Los clientes llegan temprano.']]]},
@@ -37,7 +39,7 @@ function simIsh(box){
       li.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.ok==='1'){li.querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(x.dataset.ok==='1')x.classList.add('is-ok');});step(i+1);}else{b.classList.add('is-bad');b.disabled=true;}}));};step(0);}
   load();return null;}
 function quizIsh(){const qs=[],I=pick(ISH),k=pick(M6);const c=pick(I.c[k[0]]);
-  qs.push({type:'mc',keepOrder:true,text:`En un Ishikawa sobre “${I.p}”, ¿en qué M va la causa “${c}”?`,options:M6.map(m=>m[1]),answer:M6.indexOf(k),explain:`Va en <b>${k[1]}</b>.`});
+  qs.push({type:'mc',keepOrder:true,text:`En un Ishikawa sobre “${I.p}”, ¿en qué M va la causa “${c}”?`,options:M6.map(m=>m[1]),answer:M6.indexOf(k),explain:`Va en <b>${k[1]}</b>, porque ${M6WHY[k[0]]}.`});
   const k2=pick(M6.filter(m=>m!==k)),c2=pick(I.c[k2[0]]);qs.push({type:'mc',keepOrder:true,text:`¿Y la causa “${c2}”?`,options:M6.map(m=>m[1]),answer:M6.indexOf(k2),explain:`Va en <b>${k2[1]}</b>.`});
   qs.push({type:'mc',text:'En el diagrama de Ishikawa, ¿qué va en la “cabeza” del pescado?',options:['El problema o efecto que se quiere analizar','La causa principal','La solución propuesta','El responsable del área'],answer:0,explain:'La cabeza es el efecto; las espinas son las posibles causas.'});
   qs.push({type:'mc',text:'¿Qué herramienta conviene usar después del Ishikawa para saber cuáles causas pesan más?',options:['Hoja de verificación y diagrama de Pareto','Otro diagrama de Ishikawa','Un organigrama','Un diagrama de Gantt'],answer:0,explain:'El Ishikawa propone causas; los datos (hoja de verificación, Pareto) dicen cuáles importan más.'});

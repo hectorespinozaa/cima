@@ -725,3 +725,23 @@ body.modal-open{overflow:hidden}
 .inst p{margin:2px 0 0}
 .cert-dt td:first-child,.cert-dt th:first-child{font-family:var(--f-body);text-align:left}
 .cert-dt tfoot td{font-family:var(--f-body)}.cert-dt tfoot td:not(:first-child){font-family:var(--f-mono)}
+/* ===== v1.3 · Repasos, ¿Qué prueba uso?, Nivelación ===== */
+.repaso{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--surface-2);border-left:4px solid var(--data);font-size:14.5px;line-height:1.55}
+.repaso a{font-weight:600}
+.score .repaso{margin-top:12px}
+.previos{margin-top:10px}.previos a{font-weight:600}
+.seg-wrap button{text-align:left;border-radius:12px}
+.tres .pr-card{flex:1 1 100%}
+.pr-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:6px}
+.pr-card h3{margin:0;font-size:20px}.pr-card p{margin:0}.pr-card .eyebrow{margin:0}
+.pr-sw{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:6px 0;font-size:14.5px}
+.pr-sw dt{font-weight:700;color:var(--muted)}.pr-sw dd{margin:0}.pr-sw .sec{opacity:.8;font-size:13.5px}
+.pr-card .btn{justify-self:start}
+.mx td{vertical-align:top}.mx-b{display:block;width:100%;text-align:left;font:inherit;font-size:14px;margin:2px 0;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.mx-b:hover{border-color:var(--data)}.mx-b.on{background:var(--data);color:var(--on-data);border-color:var(--data)}
+#mx-d{margin-top:12px}
+.sumt td,.sumt th{text-align:center}.sumt td.on{background:var(--accent);color:#fff;font-weight:700;border-radius:4px}.sumt td.tot{color:var(--muted);font-weight:600}
+svg.hist rect{fill:var(--data);opacity:.85}svg.hist .ax{stroke:var(--line);stroke-width:1.5}svg.hist .tk{font-size:12px;fill:var(--muted);font-family:var(--f-mono)}
+@media (max-width:640px){.pr-sw{grid-template-columns:1fr}.pr-sw dt{margin-top:4px}}
+.tbl.mx{table-layout:fixed;width:100%}.tbl.mx td,.tbl.mx th{font-family:var(--f-body);text-align:left;white-space:normal}.mx-b{font-family:var(--f-body)}
+.tbl.mx th:first-child,.tbl.mx td:first-child{width:28%}
